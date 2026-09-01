@@ -805,7 +805,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <div style="font-size:34px;">📷</div>
       <div><strong>Fes una foto</strong> o selecciona imatges des del dispositiu</div>
       <div class="muted" id="zzccPhotoCount">0 de 10 fotos afegides</div>
-      <input type="file" id="zzccPhotoInput" accept="image/*" multiple capture="environment">
+      <input type="file" id="zzccPhotoInput" accept="image/*" multiple>
     </div>
     <div id="zzccPhotoGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin-top:12px;"></div>
     <p class="muted" style="margin-top:8px;">Les fotos es redueixen automàticament de mida i s'inclouen a l'informe PDF. No es desen entre sessions: si tanques la pàgina abans de generar el PDF, es perden.</p>
@@ -888,7 +888,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <div style="font-size:34px;">📷</div>
       <div><strong>Fes una foto</strong> o selecciona imatges des del dispositiu</div>
       <div class="muted" id="habPhotoCount">0 de 10 fotos afegides</div>
-      <input type="file" id="habPhotoInput" accept="image/*" multiple capture="environment">
+      <input type="file" id="habPhotoInput" accept="image/*" multiple>
     </div>
     <div id="habPhotoGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:10px; margin-top:12px;"></div>
     <p class="muted" style="margin-top:8px;">Les fotos es redueixen automàticament de mida i s'inclouen a l'informe PDF. No es desen entre sessions.</p>
@@ -1741,14 +1741,17 @@ function drawFixedNoteAtEnd(doc, text, y, mg, W, H){
 }
 
 // Banner de certificacions, sempre al final del document, com a peu de tancament
+// (mida reduïda a la meitat, ancorat al marge inferior esquerre de la pàgina)
 function drawCertBanner(doc, y, mg, W, H){
   try{
     const ip = doc.getImageProperties(CERT_BANNER_DATAURL);
-    const imgW = W-mg*2;
+    const imgW = (W-mg*2)/2;
     const imgH = imgW * (ip.height/ip.width);
-    if(y + imgH > H-10){ doc.addPage(); y=16; }
-    doc.addImage(CERT_BANNER_DATAURL, "PNG", mg, y, imgW, imgH);
-    return y + imgH + 6;
+    const bottomY = H - mg - imgH;
+    let targetY = Math.max(y, bottomY);
+    if(targetY + imgH > H - 5){ doc.addPage(); targetY = H - mg - imgH; }
+    doc.addImage(CERT_BANNER_DATAURL, "PNG", mg, targetY, imgW, imgH);
+    return targetY + imgH + 6;
   }catch(e){ return y; }
 }
 
