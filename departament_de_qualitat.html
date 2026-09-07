@@ -722,6 +722,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       </div>
     </div>
 
+    <div class="two-col">
+      <div class="card">
+        <h3 style="margin-top:0;">Evolució mensual d'avaries</h3>
+        <div id="mEvolutionChart"></div>
+        <p class="muted" style="margin-top:8px;">Nombre d'avaries agrupades per mes, segons la data d'acceptació o finalització de cada avaria.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Temps mitjà de resolució per mes</h3>
+        <div id="mResolutionChart"></div>
+        <p class="muted" style="margin-top:8px;">Mitjana del "Temps per completar" (min) de les avaries de cada mes: permet veure si el manteniment és cada cop més ràpid o més lent, no només si hi ha més o menys avaries.</p>
+      </div>
+    </div>
+
     <div class="card">
       <h3 style="margin-top:0;">Temps dedicat</h3>
       <div class="grid kpi-grid" id="mTempsKpis"></div>
@@ -1329,6 +1342,82 @@ function computeDistribution(faults, field, limit){
   return entries;
 }
 
+// Interpreta una data vinguda del llibre d'avaries (Hub OS), que pot arribar
+// com a número de sèrie d'Excel (perquè es llegeix amb raw:true), com a text
+// en format dd/mm/aaaa (amb o sense hora), o en format aaaa-mm-dd.
+function parseFlexibleDate(value){
+  if(value === null || value === undefined || value === "") return null;
+  if(value instanceof Date && !isNaN(value)) return value;
+  if(typeof value === "number"){
+    if(value > 20000 && value < 80000){
+      const utcDays = Math.floor(value - 25569);
+      const fracDay = (value - Math.floor(value)) * 86400000;
+      const dt = new Date(utcDays * 86400000 + fracDay);
+      return isNaN(dt) ? null : dt;
+    }
+    return null;
+  }
+  const str = String(value).trim();
+  if(!str) return null;
+  let m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[ ,T]+(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?)?/);
+  if(m){
+    let [, d, mo, y, h, mi, s] = m;
+    if(y.length === 2) y = (+y < 70 ? "20" : "19") + y;
+    const dt = new Date(+y, +mo-1, +d, +(h||0), +(mi||0), +(s||0));
+    if(!isNaN(dt)) return dt;
+  }
+  m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m){
+    const [, y, mo, d, h, mi, s] = m;
+    const dt = new Date(+y, +mo-1, +d, +(h||0), +(mi||0), +(s||0));
+    if(!isNaN(dt)) return dt;
+  }
+  return null;
+}
+
+// Determina la data "de referència" d'una avaria per agrupar-la per mes:
+// prioritza l'acceptació, després la finalització, i com a últim recurs
+// intenta llegir el propi camp de sol·licitud per si conté una data.
+function getFaultDate(f){
+  return parseFlexibleDate(f.acceptance) || parseFlexibleDate(f.completion) || parseFlexibleDate(f.request) || null;
+}
+
+const MONTH_NAMES_CA = ["Gen","Feb","Mar","Abr","Mai","Jun","Jul","Ago","Set","Oct","Nov","Des"];
+
+// Nombre d'avaries agrupades cronològicament per mes (per veure'n l'evolució)
+function computeMonthlyEvolution(faults){
+  const counts = {};
+  faults.forEach(f=>{
+    const d = getFaultDate(f);
+    if(!d) return;
+    const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    counts[key] = (counts[key]||0) + 1;
+  });
+  return Object.keys(counts).sort().map(k=>{
+    const [y,m] = k.split("-");
+    return [`${MONTH_NAMES_CA[+m-1]} ${y}`, counts[k]];
+  });
+}
+
+// Temps mitjà de resolució ("Temps per completar", min) agrupat per mes
+function computeMonthlyAvgResolution(faults){
+  const buckets = {};
+  faults.forEach(f=>{
+    const d = getFaultDate(f);
+    if(!d) return;
+    const t = parseFloat(String(f.timeToComplete ?? "").replace(",", "."));
+    if(isNaN(t)) return;
+    const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    if(!buckets[key]) buckets[key] = {sum:0, count:0};
+    buckets[key].sum += t;
+    buckets[key].count++;
+  });
+  return Object.keys(buckets).sort().map(k=>{
+    const [y,m] = k.split("-");
+    return [`${MONTH_NAMES_CA[+m-1]} ${y}`, Math.round(buckets[k].sum/buckets[k].count)];
+  });
+}
+
 function renderBarChart(containerId, entries){
   const container = document.getElementById(containerId);
   if(!entries.length){ container.innerHTML = `<div class="muted">Sense dades disponibles.</div>`; return; }
@@ -1344,6 +1433,86 @@ function renderBarChart(containerId, entries){
 function renderMCharts(){
   renderBarChart("mPisChart", computeDistribution(M_STATE.faults, "floor"));
   renderBarChart("mEstancesChart", computeDistribution(M_STATE.faults, "area", 10));
+  renderLineChartImage("mEvolutionChart", computeMonthlyEvolution(M_STATE.faults), "Nombre d'avaries");
+  renderLineChartImage("mResolutionChart", computeMonthlyAvgResolution(M_STATE.faults), "Minuts de mitjana");
+}
+
+// Dibuixa un gràfic de línia/evolució en un <canvas> i el retorna com a PNG (dataURL).
+// S'usa tant per a la previsualització en pantalla com per incrustar-lo al PDF,
+// perquè els dos coincideixin exactament.
+function drawLineChartToCanvas(entries, opts){
+  opts = opts || {};
+  const width = opts.width || 900;
+  const height = opts.height || 320;
+  const padL = 60, padR = 30, padT = 26, padB = 56;
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,width,height);
+  if(!entries.length){
+    ctx.fillStyle = "#8a7070"; ctx.font = "20px Arial"; ctx.textAlign = "center";
+    ctx.fillText("Sense dades amb data reconeixible", width/2, height/2);
+    return canvas.toDataURL("image/png");
+  }
+  const max = Math.max(...entries.map(e=>e[1]), 1);
+  const plotW = width - padL - padR;
+  const plotH = height - padT - padB;
+  const n = entries.length;
+  const stepX = n > 1 ? plotW/(n-1) : 0;
+
+  ctx.strokeStyle = "#f0dede"; ctx.lineWidth = 1;
+  ctx.font = "16px Arial"; ctx.fillStyle = "#8a7070"; ctx.textAlign = "right";
+  const gridSteps = 4;
+  for(let i=0; i<=gridSteps; i++){
+    const v = Math.round(max * i/gridSteps);
+    const gy = padT + plotH - (v/max)*plotH;
+    ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(width-padR, gy); ctx.stroke();
+    ctx.fillText(String(v), padL-10, gy+5);
+  }
+
+  const points = entries.map((e,i)=>({
+    x: padL + (n>1 ? i*stepX : plotW/2),
+    y: padT + plotH - (e[1]/max)*plotH
+  }));
+
+  ctx.beginPath();
+  points.forEach((p,i)=>{ if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); });
+  ctx.lineTo(points[points.length-1].x, padT+plotH);
+  ctx.lineTo(points[0].x, padT+plotH);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(160,30,30,0.08)";
+  ctx.fill();
+
+  ctx.strokeStyle = "#a01e1e"; ctx.lineWidth = 3;
+  ctx.beginPath();
+  points.forEach((p,i)=>{ if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); });
+  ctx.stroke();
+
+  points.forEach((p,i)=>{
+    ctx.fillStyle = "#a01e1e";
+    ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill();
+    ctx.font = "bold 16px Arial"; ctx.fillStyle = "#4a3030"; ctx.textAlign = "center";
+    ctx.fillText(String(entries[i][1]), p.x, Math.max(16,p.y-12));
+    ctx.font = "14px Arial"; ctx.fillStyle = "#6a5050";
+    ctx.save();
+    ctx.translate(p.x, height-padB+18);
+    if(n > 8){ ctx.rotate(-Math.PI/4); ctx.textAlign = "right"; }
+    else ctx.textAlign = "center";
+    ctx.fillText(entries[i][0], 0, 0);
+    ctx.restore();
+  });
+
+  return canvas.toDataURL("image/png");
+}
+
+function renderLineChartImage(containerId, entries, yAxisLabel){
+  const container = document.getElementById(containerId);
+  if(!entries.length){
+    container.innerHTML = `<div class="muted">Sense dades amb data reconeixible (cal que el fitxer inclogui columnes d'Acceptació o Finalització amb data).</div>`;
+    return;
+  }
+  const dataUrl = drawLineChartToCanvas(entries, {width:900, height:320});
+  container.innerHTML = `<img src="${dataUrl}" alt="${escapeHtml(yAxisLabel||'')}" style="width:100%; height:auto; border-radius:8px;">`;
 }
 
 function renderMTable(){
@@ -1519,9 +1688,8 @@ function generateMaintenancePdf(){
   doc.text(`Total: ${withTime.length ? totalTime.toLocaleString("ca-ES")+" min ("+(totalTime/60).toFixed(1)+" h)" : "Dada no disponible"}  ·  Mitjana per avaria: ${avgTime!==null?avgTime.toFixed(1)+" min":"Dada no disponible"}`, mg, y);
   y += 10;
 
-  // Gràfics (imatge, no text) d'avaries per pis i per estança
-  const addChart = (title, entries)=>{
-    const dataUrl = drawBarChartToCanvas(entries, {width:900});
+  // Gràfics (imatge, no text) d'avaries per pis, per estança, i evolució temporal
+  const addChartImg = (title, dataUrl)=>{
     const imgProps = doc.getImageProperties(dataUrl);
     const imgW = W-mg*2;
     const imgH = imgW * (imgProps.height/imgProps.width);
@@ -1531,8 +1699,10 @@ function generateMaintenancePdf(){
     doc.addImage(dataUrl, "PNG", mg, y, imgW, imgH);
     y += imgH + 8;
   };
-  addChart("Avaries per pis", computeDistribution(M_STATE.faults, "floor"));
-  addChart("Estances amb més avaries", computeDistribution(M_STATE.faults, "area", 10));
+  addChartImg("Avaries per pis", drawBarChartToCanvas(computeDistribution(M_STATE.faults, "floor"), {width:900}));
+  addChartImg("Estances amb més avaries", drawBarChartToCanvas(computeDistribution(M_STATE.faults, "area", 10), {width:900}));
+  addChartImg("Evolució mensual d'avaries", drawLineChartToCanvas(computeMonthlyEvolution(M_STATE.faults), {width:900, height:320}));
+  addChartImg("Temps mitjà de resolució per mes (min)", drawLineChartToCanvas(computeMonthlyAvgResolution(M_STATE.faults), {width:900, height:320}));
 
   // Taula completa d'avaries
   if(doc.autoTable){
