@@ -1148,6 +1148,8 @@ async function handleMFileSelected(file){
     }
     M_STATE.hotelName = result.hotelName;
     M_STATE.periodText = result.periodText;
+    M_STATE.periodStart = result.periodStart;
+    M_STATE.periodEnd = result.periodEnd;
     M_STATE.source = result.source;
     M_STATE.headers = result.headers;
     M_STATE.faults = result.faults;
@@ -1258,7 +1260,7 @@ function parseMaintenanceSheet(matrix){
     faults.push(rec);
   }
 
-  return {ok:true, hotelName, periodText, source, headers, faults};
+  return {ok:true, hotelName, periodText, periodStart: extractDatesFromText(periodText)[0] || null, periodEnd: extractDatesFromText(periodText)[1] || null, source, headers, faults};
 }
 
 /* -------------------------- CÀLCUL DE KPI I RENDERITZAT -------------------------- */
@@ -1375,11 +1377,37 @@ function parseFlexibleDate(value){
   return null;
 }
 
-// Determina la data "de referència" d'una avaria per agrupar-la per mes:
-// prioritza l'acceptació, després la finalització, i com a últim recurs
-// intenta llegir el propi camp de sol·licitud per si conté una data.
+// Determina la data "de referència" d'una avaria per agrupar-la per mes.
+// La Sol·licitud sol ser el camp més fiable (sempre present, amb data i
+// hora), i s'usa primer; l'acceptació i la finalització es fan servir com
+// a reforç si mai calgués.
 function getFaultDate(f){
-  return parseFlexibleDate(f.acceptance) || parseFlexibleDate(f.completion) || parseFlexibleDate(f.request) || null;
+  return parseFlexibleDate(f.request) || parseFlexibleDate(f.acceptance) || parseFlexibleDate(f.completion) || null;
+}
+
+// Cerca totes les dates reconeixibles dins d'un text lliure (per exemple,
+// "Mostrant avaries des de 01/09/2025 fins 07/09/2026").
+function extractDatesFromText(text){
+  if(!text) return [];
+  const found = [];
+  const re = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})/g;
+  let m;
+  while((m = re.exec(text)) !== null){
+    const d = parseFlexibleDate(m[1]);
+    if(d) found.push(d);
+  }
+  return found;
+}
+
+// Comprova que una data calculada cau dins del període que el propi fitxer
+// declara (amb un marge de seguretat), per descartar files amb dates mal
+// formades o incoherents que, altrament, quedarien disperses en mesos molt
+// anteriors o posteriors als reals i farien lleig el gràfic.
+function isDateWithinDeclaredPeriod(d){
+  const start = M_STATE.periodStart, end = M_STATE.periodEnd;
+  if(!start || !end) return true;
+  const marginMs = 45 * 24 * 60 * 60 * 1000;
+  return d.getTime() >= (start.getTime() - marginMs) && d.getTime() <= (end.getTime() + marginMs);
 }
 
 const MONTH_NAMES_CA = ["Gen","Feb","Mar","Abr","Mai","Jun","Jul","Ago","Set","Oct","Nov","Des"];
@@ -1389,7 +1417,7 @@ function computeMonthlyEvolution(faults){
   const counts = {};
   faults.forEach(f=>{
     const d = getFaultDate(f);
-    if(!d) return;
+    if(!d || !isDateWithinDeclaredPeriod(d)) return;
     const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
     counts[key] = (counts[key]||0) + 1;
   });
@@ -1404,9 +1432,9 @@ function computeMonthlyAvgResolution(faults){
   const buckets = {};
   faults.forEach(f=>{
     const d = getFaultDate(f);
-    if(!d) return;
+    if(!d || !isDateWithinDeclaredPeriod(d)) return;
     const t = parseFloat(String(f.timeToComplete ?? "").replace(",", "."));
-    if(isNaN(t)) return;
+    if(isNaN(t) || t < 0 || t > 43200) return; // descarta valors anòmals (>30 dies): error de dades, no temps real
     const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
     if(!buckets[key]) buckets[key] = {sum:0, count:0};
     buckets[key].sum += t;
@@ -1442,14 +1470,20 @@ function renderMCharts(){
 // perquè els dos coincideixin exactament.
 function drawLineChartToCanvas(entries, opts){
   opts = opts || {};
-  const width = opts.width || 900;
-  const height = opts.height || 320;
+  const n = entries.length;
   const padL = 60, padR = 30, padT = 26, padB = 56;
+  const baseWidth = opts.width || 900;
+  const baseHeight = opts.height || 320;
+  // Amb molts mesos, dona més amplada perquè els punts no quedin arrapats
+  // (evita que les etiquetes de valor es solapin i es vegin illegibles)
+  const minPointGap = 55;
+  const width = Math.max(baseWidth, padL + padR + Math.max(1,n-1)*minPointGap);
+  const height = width > baseWidth ? Math.round(baseHeight * Math.min(width/baseWidth, 1.6)) : baseHeight;
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,width,height);
-  if(!entries.length){
+  if(!n){
     ctx.fillStyle = "#8a7070"; ctx.font = "20px Arial"; ctx.textAlign = "center";
     ctx.fillText("Sense dades amb data reconeixible", width/2, height/2);
     return canvas.toDataURL("image/png");
@@ -1457,8 +1491,10 @@ function drawLineChartToCanvas(entries, opts){
   const max = Math.max(...entries.map(e=>e[1]), 1);
   const plotW = width - padL - padR;
   const plotH = height - padT - padB;
-  const n = entries.length;
   const stepX = n > 1 ? plotW/(n-1) : 0;
+  // Amb molts punts, no hi cap una etiqueta per cadascun sense solapar-se:
+  // en mostrem només una de cada X (l'eix de la quadrícula ja dona l'escala)
+  const labelStride = n > 24 ? 3 : n > 14 ? 2 : 1;
 
   ctx.strokeStyle = "#f0dede"; ctx.lineWidth = 1;
   ctx.font = "16px Arial"; ctx.fillStyle = "#8a7070"; ctx.textAlign = "right";
@@ -1491,14 +1527,16 @@ function drawLineChartToCanvas(entries, opts){
   points.forEach((p,i)=>{
     ctx.fillStyle = "#a01e1e";
     ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill();
-    ctx.font = "bold 16px Arial"; ctx.fillStyle = "#4a3030"; ctx.textAlign = "center";
-    ctx.fillText(String(entries[i][1]), p.x, Math.max(16,p.y-12));
+    if(i % labelStride === 0){
+      ctx.font = "bold 16px Arial"; ctx.fillStyle = "#4a3030"; ctx.textAlign = "center";
+      ctx.fillText(String(entries[i][1]), p.x, Math.max(16,p.y-12));
+    }
     ctx.font = "14px Arial"; ctx.fillStyle = "#6a5050";
     ctx.save();
     ctx.translate(p.x, height-padB+18);
     if(n > 8){ ctx.rotate(-Math.PI/4); ctx.textAlign = "right"; }
     else ctx.textAlign = "center";
-    ctx.fillText(entries[i][0], 0, 0);
+    if(i % labelStride === 0) ctx.fillText(entries[i][0], 0, 0);
     ctx.restore();
   });
 
