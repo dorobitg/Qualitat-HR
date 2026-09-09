@@ -1303,13 +1303,13 @@ function renderMKpis(){
   const rn = !isNaN(rnVal) && rnVal > 0 ? rnVal : null;
   const cost = !isNaN(costVal) ? costVal : null;
 
-  const avariesPerRN = rn ? (total/rn) : null;
+  const avariesPerRN = rn ? (total/rn*100) : null;
   const costPerRN = (rn && cost !== null) ? (cost/rn) : null;
 
   const kpis = [
     {label:"Nombre d'avaries", value: total, color:"red"},
     {label:"Room Nights (RN)", value: rn !== null ? rn.toLocaleString("ca-ES") : "Dada no introduïda", color:"gray"},
-    {label:"Avaries per RN", value: avariesPerRN !== null ? avariesPerRN.toFixed(3) : "—", color:"orange"},
+    {label:"Avaries per RN", value: avariesPerRN !== null ? avariesPerRN.toFixed(1)+"%" : "—", color:"orange"},
     {label:"Cost de manteniment", value: cost !== null ? fmtEUR(cost) : "Dada no introduïda", color:"gray"},
     {label:"Cost per RN", value: costPerRN !== null ? fmtEUR(costPerRN) : "—", color:"orange"}
   ];
@@ -1406,7 +1406,10 @@ function extractDatesFromText(text){
 function isDateWithinDeclaredPeriod(d){
   const start = M_STATE.periodStart, end = M_STATE.periodEnd;
   if(!start || !end) return true;
-  const marginMs = 45 * 24 * 60 * 60 * 1000;
+  // Marge mínim (només per arrodoniments de zona horària), no per acceptar
+  // mesos veïns: si el fitxer és d'un sol mes, el gràfic ha de mostrar
+  // només aquell mes.
+  const marginMs = 1 * 24 * 60 * 60 * 1000;
   return d.getTime() >= (start.getTime() - marginMs) && d.getTime() <= (end.getTime() + marginMs);
 }
 
@@ -1653,9 +1656,7 @@ function generateMaintenancePdf(){
   const mg = 14;
   let y = 12;
 
-  const [rr,rg,rb] = [160,30,30];
-
-  doc.setFillColor(rr,rg,rb);
+  doc.setFillColor(...AUDIT_COLOR);
   doc.rect(0,0,W,24,"F");
   doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.setTextColor(255,255,255);
   doc.text("Informe de Manteniment", mg, 13);
@@ -1688,76 +1689,76 @@ function generateMaintenancePdf(){
   }catch(e){}
   y += logoBlockH + 8;
 
-  // KPI principals
+  // Indicadors principals, en pastilles individuals (una per indicador)
   const rnVal = parseFloat(document.getElementById("mRN").value);
   const costVal = parseFloat(document.getElementById("mCost").value);
   const rn = !isNaN(rnVal) && rnVal>0 ? rnVal : null;
   const cost = !isNaN(costVal) ? costVal : null;
   const total = M_STATE.faults.length;
-  const avariesPerRN = rn ? (total/rn) : null;
+  const avariesPerRN = rn ? (total/rn*100) : null;
   const costPerRN = (rn && cost!==null) ? (cost/rn) : null;
-
-  doc.setDrawColor(230,210,210); doc.setFillColor(253,243,243);
-  doc.roundedRect(mg, y, W-mg*2, 26, 2, 2, "FD");
-  const kpiCols = [
-    ["Nombre d'avaries", String(total)],
-    ["Room Nights (RN)", rn!==null?rn.toLocaleString("ca-ES"):"—"],
-    ["Avaries / RN", avariesPerRN!==null?avariesPerRN.toFixed(3):"—"],
-    ["Cost manteniment", cost!==null?fmtEUR(cost):"—"],
-    ["Cost / RN", costPerRN!==null?fmtEUR(costPerRN):"—"]
-  ];
-  const colW = (W-mg*2)/kpiCols.length;
-  kpiCols.forEach((kv,i)=>{
-    const x = mg + i*colW;
-    doc.setFont("helvetica","bold"); doc.setFontSize(11.5); doc.setTextColor(30,20,20);
-    doc.text(kv[1], x+colW/2, y+11, {align:"center"});
-    doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(120,90,90);
-    doc.text(doc.splitTextToSize(kv[0], colW-4), x+colW/2, y+18, {align:"center"});
-  });
-  y += 32;
-
-  // Temps dedicat
   const withTime = M_STATE.faults.filter(f=>f.timeSpentNum!==null);
   const totalTime = withTime.reduce((s,f)=>s+f.timeSpentNum,0);
-  const avgTime = withTime.length ? totalTime/withTime.length : null;
-  doc.setFont("helvetica","bold"); doc.setFontSize(10.5); doc.setTextColor(rr,rg,rb);
-  doc.text("Temps dedicat", mg, y); y+=6;
-  doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.setTextColor(40,30,30);
-  doc.text(`Total: ${withTime.length ? totalTime.toLocaleString("ca-ES")+" min ("+(totalTime/60).toFixed(1)+" h)" : "Dada no disponible"}  ·  Mitjana per avaria: ${avgTime!==null?avgTime.toFixed(1)+" min":"Dada no disponible"}`, mg, y);
-  y += 10;
 
-  // Gràfics (imatge, no text) d'avaries per pis, per estança, i evolució temporal
-  const addChartImg = (title, dataUrl)=>{
-    const imgProps = doc.getImageProperties(dataUrl);
-    const imgW = W-mg*2;
-    const imgH = imgW * (imgProps.height/imgProps.width);
-    if(y + 8 + imgH > H-16){ doc.addPage(); y=16; }
-    doc.setFont("helvetica","bold"); doc.setFontSize(10.5); doc.setTextColor(rr,rg,rb);
-    doc.text(title, mg, y); y+=5;
-    doc.addImage(dataUrl, "PNG", mg, y, imgW, imgH);
-    y += imgH + 8;
-  };
-  addChartImg("Avaries per pis", drawBarChartToCanvas(computeDistribution(M_STATE.faults, "floor"), {width:900}));
-  addChartImg("Estances amb més avaries", drawBarChartToCanvas(computeDistribution(M_STATE.faults, "area", 10), {width:900}));
-  addChartImg("Evolució mensual d'avaries", drawLineChartToCanvas(computeMonthlyEvolution(M_STATE.faults), {width:900, height:320}));
-  addChartImg("Temps mitjà de resolució per mes (min)", drawLineChartToCanvas(computeMonthlyAvgResolution(M_STATE.faults), {width:900, height:320}));
-
-  // Taula completa d'avaries
-  if(doc.autoTable){
-    const cols = ["Sol·licitud","Pis","Estança","Títol","Prioritat","Estat","Finalitzat per","Temps (min)"];
-    const rows = M_STATE.faults.map(f=>[
-      f.request||"—", f.floor||"—", f.area||"—", f.title||"—", f.priority||"—",
-      f.status||"—", f.completedBy||"—", f.timeSpentNum!==null?String(f.timeSpentNum):"—"
-    ]);
-    doc.autoTable({ head:[cols], body:rows, startY:y, styles:{fontSize:6.5}, margin:{left:mg,right:mg},
-      headStyles:{fillColor:[rr,rg,rb]},
-      didDrawPage: ()=>{
-        doc.setFontSize(8); doc.setTextColor(150,150,150);
-        doc.text(`Pàgina ${doc.internal.getNumberOfPages()}`, W-mg, H-8, {align:"right"});
-        doc.text("Departament de Qualitat — confidencial", mg, H-8);
-      }
-    });
+  function drawKpiPill(x, py, w, h, value, label){
+    doc.setFillColor(...AUDIT_COLOR);
+    doc.roundedRect(x, py, w, h, 3, 3, "F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(12.5); doc.setTextColor(255,255,255);
+    doc.text(value, x+w/2, py+h*0.44, {align:"center"});
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(255,225,225);
+    const lines = doc.splitTextToSize(label, w-6);
+    lines.forEach((line,i)=> doc.text(line, x+w/2, py+h*0.66+i*3, {align:"center"}));
   }
+
+  const kpis = [
+    ["Nombre d'avaries", String(total)],
+    ["Room Nights (RN)", rn!==null?rn.toLocaleString("ca-ES"):"—"],
+    ["Avaries / RN", avariesPerRN!==null?avariesPerRN.toFixed(1)+"%":"—"],
+    ["Cost manteniment", cost!==null?fmtEUR(cost):"—"],
+    ["Cost / RN", costPerRN!==null?fmtEUR(costPerRN):"—"],
+    ["Temps dedicat total", withTime.length?(totalTime/60).toFixed(1)+" h":"—"]
+  ];
+  const kpiGap = 4, kpiCols = 3, kpiH = 20;
+  const kpiW = (W-mg*2-kpiGap*(kpiCols-1))/kpiCols;
+  kpis.forEach((kv,i)=>{
+    const col = i % kpiCols, row = Math.floor(i/kpiCols);
+    const x = mg + col*(kpiW+kpiGap);
+    const py = y + row*(kpiH+kpiGap);
+    drawKpiPill(x, py, kpiW, kpiH, kv[1], kv[0]);
+  });
+  y += Math.ceil(kpis.length/kpiCols)*(kpiH+kpiGap) + 4;
+
+  // Gràfics en graella de 2 columnes (dos per fila), a mida reduïda
+  const chartGap = 6;
+  const chartColW = (W - mg*2 - chartGap)/2;
+  const placeChart = (title, dataUrl, x, yTop)=>{
+    const imgProps = doc.getImageProperties(dataUrl);
+    const imgH = chartColW * (imgProps.height/imgProps.width);
+    doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(...AUDIT_COLOR);
+    doc.text(title, x, yTop);
+    doc.addImage(dataUrl, "PNG", x, yTop+3, chartColW, imgH);
+    return imgH + 3;
+  };
+  const chartPis = drawBarChartToCanvas(computeDistribution(M_STATE.faults, "floor"), {width:700});
+  const chartEstances = drawBarChartToCanvas(computeDistribution(M_STATE.faults, "area", 10), {width:700});
+  const chartEvolucio = drawLineChartToCanvas(computeMonthlyEvolution(M_STATE.faults), {width:700, height:260});
+  const chartResolucio = drawLineChartToCanvas(computeMonthlyAvgResolution(M_STATE.faults), {width:700, height:260});
+
+  const row1H = Math.max(
+    placeChart("Avaries per pis", chartPis, mg, y),
+    placeChart("Estances amb més avaries", chartEstances, mg+chartColW+chartGap, y)
+  );
+  y += row1H + 10;
+  if(y > H - 90){ doc.addPage(); y = 16; }
+  const row2H = Math.max(
+    placeChart("Evolució mensual d'avaries", chartEvolucio, mg, y),
+    placeChart("Temps mitjà de resolució per mes (min)", chartResolucio, mg+chartColW+chartGap, y)
+  );
+  y += row2H + 8;
+
+  // Banner de certificacions + adreça de la propietat (si es reconeix), a totes les pàgines
+  const propertyAddr = PROPERTY_DIRECTORY[(M_STATE.hotelName||"").trim()];
+  stampFooterOnAllPages(doc, mg, W, H, propertyAddr);
 
   const fname = `Informe_Manteniment_${(M_STATE.hotelName||"hotel").replace(/\s+/g,"_")}.pdf`;
   doc.save(fname);
