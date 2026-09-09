@@ -546,13 +546,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
   }
   .grid{display:grid; gap:14px;}
   .kpi-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
-  .kpi{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:14px;}
-  .kpi .kpi-value{font-size:26px; font-weight:700;}
-  .kpi .kpi-label{font-size:12.5px; color:var(--text-soft); margin-top:2px;}
-  .kpi.red{border-left:5px solid var(--red);}
-  .kpi.green{border-left:5px solid var(--green);}
-  .kpi.orange{border-left:5px solid var(--orange);}
-  .kpi.gray{border-left:5px solid var(--gray);}
+  .kpi{background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px 16px;}
+  .kpi .kpi-label{font-size:11px; color:var(--text-soft); text-transform:uppercase; letter-spacing:.05em; margin-bottom:5px;}
+  .kpi .kpi-value{font-size:27px; font-weight:700; color:var(--text);}
+  .kpi.red .kpi-value{color:var(--red);}
+  .kpi.green .kpi-value{color:var(--green);}
+  .kpi.orange .kpi-value{color:var(--orange);}
+  .kpi.gray .kpi-value{color:var(--gray);}
   .dropzone{
     position:relative;
     border:2px dashed var(--red); border-radius:var(--radius); padding:36px 16px;
@@ -713,25 +713,12 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
     <div class="two-col">
       <div class="card">
-        <h3 style="margin-top:0;">Avaries per pis</h3>
+        <h3 style="margin-top:0;">Top 10 pisos amb més avaries</h3>
         <div id="mPisChart"></div>
       </div>
       <div class="card">
-        <h3 style="margin-top:0;">Estances amb més avaries</h3>
+        <h3 style="margin-top:0;">Top 10 estances amb més avaries</h3>
         <div id="mEstancesChart"></div>
-      </div>
-    </div>
-
-    <div class="two-col">
-      <div class="card">
-        <h3 style="margin-top:0;">Evolució mensual d'avaries</h3>
-        <div id="mEvolutionChart"></div>
-        <p class="muted" style="margin-top:8px;">Nombre d'avaries agrupades per mes, segons la data d'acceptació o finalització de cada avaria.</p>
-      </div>
-      <div class="card">
-        <h3 style="margin-top:0;">Temps mitjà de resolució per mes</h3>
-        <div id="mResolutionChart"></div>
-        <p class="muted" style="margin-top:8px;">Mitjana del "Temps per completar" (min) de les avaries de cada mes: permet veure si el manteniment és cada cop més ràpid o més lent, no només si hi ha més o menys avaries.</p>
       </div>
     </div>
 
@@ -1314,7 +1301,7 @@ function renderMKpis(){
     {label:"Cost per RN", value: costPerRN !== null ? fmtEUR(costPerRN) : "—", color:"orange"}
   ];
   document.getElementById("mKpis").innerHTML = kpis.map(k=>`
-    <div class="kpi ${k.color}"><div class="kpi-value">${escapeHtml(String(k.value))}</div><div class="kpi-label">${escapeHtml(k.label)}</div></div>
+    <div class="kpi ${k.color}"><div class="kpi-label">${escapeHtml(k.label)}</div><div class="kpi-value">${escapeHtml(String(k.value))}</div></div>
   `).join("");
 }
 
@@ -1329,7 +1316,7 @@ function renderMTempsKpis(){
     {label:"Temps mitjà per avaria (min)", value: avg !== null ? avg.toFixed(1) : "Dada no disponible", color:"orange"}
   ];
   document.getElementById("mTempsKpis").innerHTML = kpis.map(k=>`
-    <div class="kpi ${k.color}"><div class="kpi-value">${escapeHtml(String(k.value))}</div><div class="kpi-label">${escapeHtml(k.label)}</div></div>
+    <div class="kpi ${k.color}"><div class="kpi-label">${escapeHtml(k.label)}</div><div class="kpi-value">${escapeHtml(String(k.value))}</div></div>
   `).join("");
 }
 
@@ -1462,10 +1449,8 @@ function renderBarChart(containerId, entries){
 }
 
 function renderMCharts(){
-  renderBarChart("mPisChart", computeDistribution(M_STATE.faults, "floor"));
+  renderBarChart("mPisChart", computeDistribution(M_STATE.faults, "floor", 10));
   renderBarChart("mEstancesChart", computeDistribution(M_STATE.faults, "area", 10));
-  renderLineChartImage("mEvolutionChart", computeMonthlyEvolution(M_STATE.faults), "Nombre d'avaries");
-  renderLineChartImage("mResolutionChart", computeMonthlyAvgResolution(M_STATE.faults), "Minuts de mitjana");
 }
 
 // Dibuixa un gràfic de línia/evolució en un <canvas> i el retorna com a PNG (dataURL).
@@ -1607,41 +1592,56 @@ function getPdfLib(){
 }
 
 // Dibuixa un gràfic de barres horitzontals en un <canvas> i el retorna com a PNG (dataURL)
+// Petita utilitat per dibuixar rectangles amb cantonades arrodonides en un <canvas>
+function canvasRoundRect(ctx, x, y, w, h, r){
+  r = Math.max(0, Math.min(r, h/2, w/2));
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
 function drawBarChartToCanvas(entries, opts){
   opts = opts || {};
   const width = opts.width || 900;
-  const barHeight = 34, gap=12, paddingTop=6, paddingLeft=270, paddingRight=60;
+  const barHeight = 22, gap = 15, paddingTop = 8, paddingLeft = 260, paddingRight = 50;
   const height = paddingTop*2 + Math.max(1,entries.length)*(barHeight+gap);
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,width,height);
   if(!entries.length){
-    ctx.fillStyle = "#8a7070"; ctx.font = "20px Arial"; ctx.textAlign="center";
+    ctx.fillStyle = "#9a8a8a"; ctx.font = "18px Arial"; ctx.textAlign="center";
     ctx.fillText("Sense dades disponibles", width/2, height/2);
     return canvas.toDataURL("image/png");
   }
   const max = Math.max(...entries.map(e=>e[1]), 1);
+  const trackColor = "#f2e9e9";
+  const barColor = "#b24a4a";
   entries.forEach(([label,count], i)=>{
-    const y = paddingTop + i*(barHeight+gap);
-    ctx.fillStyle = "#4a3030";
-    ctx.textAlign = "right";
-    ctx.font = "20px Arial";
+    const yy = paddingTop + i*(barHeight+gap);
+    ctx.fillStyle = "#4a4040"; ctx.textAlign = "right"; ctx.font = "16px Arial";
     let lbl = String(label);
-    if(lbl.length > 22) lbl = lbl.slice(0,21)+"…";
-    ctx.fillText(lbl, paddingLeft-12, y+barHeight*0.68);
-    ctx.fillStyle = "#f3e0e0";
-    ctx.fillRect(paddingLeft, y, width-paddingLeft-paddingRight, barHeight);
-    const barW = (count/max) * (width-paddingLeft-paddingRight);
-    ctx.fillStyle = "#a01e1e";
-    ctx.fillRect(paddingLeft, y, Math.max(2,barW), barHeight);
-    ctx.font = "bold 18px Arial";
-    if(barW > 30){
+    if(lbl.length > 26) lbl = lbl.slice(0,25)+"…";
+    ctx.fillText(lbl, paddingLeft-14, yy+barHeight*0.7);
+
+    canvasRoundRect(ctx, paddingLeft, yy, width-paddingLeft-paddingRight, barHeight, barHeight/2);
+    ctx.fillStyle = trackColor; ctx.fill();
+
+    const barW = Math.max(8, (count/max) * (width-paddingLeft-paddingRight));
+    canvasRoundRect(ctx, paddingLeft, yy, barW, barHeight, barHeight/2);
+    ctx.fillStyle = barColor; ctx.fill();
+
+    ctx.font = "bold 15px Arial";
+    if(barW > 34){
       ctx.fillStyle = "#ffffff"; ctx.textAlign = "left";
-      ctx.fillText(String(count), paddingLeft+8, y+barHeight*0.68);
+      ctx.fillText(String(count), paddingLeft+10, yy+barHeight*0.7);
     } else {
-      ctx.fillStyle = "#a01e1e"; ctx.textAlign = "left";
-      ctx.fillText(String(count), paddingLeft+barW+6, y+barHeight*0.68);
+      ctx.fillStyle = barColor; ctx.textAlign = "left";
+      ctx.fillText(String(count), paddingLeft+barW+8, yy+barHeight*0.7);
     }
   });
   return canvas.toDataURL("image/png");
@@ -1701,13 +1701,13 @@ function generateMaintenancePdf(){
   const totalTime = withTime.reduce((s,f)=>s+f.timeSpentNum,0);
 
   function drawKpiPill(x, py, w, h, value, label){
-    doc.setFillColor(...AUDIT_COLOR);
-    doc.roundedRect(x, py, w, h, 3, 3, "F");
-    doc.setFont("helvetica","bold"); doc.setFontSize(12.5); doc.setTextColor(255,255,255);
-    doc.text(value, x+w/2, py+h*0.44, {align:"center"});
-    doc.setFont("helvetica","normal"); doc.setFontSize(6.8); doc.setTextColor(255,225,225);
-    const lines = doc.splitTextToSize(label, w-6);
-    lines.forEach((line,i)=> doc.text(line, x+w/2, py+h*0.66+i*3, {align:"center"}));
+    doc.setDrawColor(228,222,222); doc.setFillColor(252,251,251);
+    doc.roundedRect(x, py, w, h, 3, 3, "FD");
+    doc.setFont("helvetica","normal"); doc.setFontSize(6.3); doc.setTextColor(140,128,128);
+    const lines = doc.splitTextToSize(label.toUpperCase(), w-6);
+    lines.forEach((line,i)=> doc.text(line, x+w/2, py+7+i*3, {align:"center"}));
+    doc.setFont("helvetica","bold"); doc.setFontSize(15); doc.setTextColor(...AUDIT_COLOR);
+    doc.text(value, x+w/2, py+h-6.5, {align:"center"});
   }
 
   const kpis = [
@@ -1718,7 +1718,7 @@ function generateMaintenancePdf(){
     ["Cost / RN", costPerRN!==null?fmtEUR(costPerRN):"—"],
     ["Temps dedicat total", withTime.length?(totalTime/60).toFixed(1)+" h":"—"]
   ];
-  const kpiGap = 4, kpiCols = 3, kpiH = 20;
+  const kpiGap = 4, kpiCols = 3, kpiH = 22;
   const kpiW = (W-mg*2-kpiGap*(kpiCols-1))/kpiCols;
   kpis.forEach((kv,i)=>{
     const col = i % kpiCols, row = Math.floor(i/kpiCols);
@@ -1728,7 +1728,7 @@ function generateMaintenancePdf(){
   });
   y += Math.ceil(kpis.length/kpiCols)*(kpiH+kpiGap) + 4;
 
-  // Gràfics en graella de 2 columnes (dos per fila), a mida reduïda
+  // Gràfics de barres (top 10), un al costat de l'altre
   const chartGap = 6;
   const chartColW = (W - mg*2 - chartGap)/2;
   const placeChart = (title, dataUrl, x, yTop)=>{
@@ -1739,22 +1739,14 @@ function generateMaintenancePdf(){
     doc.addImage(dataUrl, "PNG", x, yTop+3, chartColW, imgH);
     return imgH + 3;
   };
-  const chartPis = drawBarChartToCanvas(computeDistribution(M_STATE.faults, "floor"), {width:700});
+  const chartPis = drawBarChartToCanvas(computeDistribution(M_STATE.faults, "floor", 10), {width:700});
   const chartEstances = drawBarChartToCanvas(computeDistribution(M_STATE.faults, "area", 10), {width:700});
-  const chartEvolucio = drawLineChartToCanvas(computeMonthlyEvolution(M_STATE.faults), {width:700, height:260});
-  const chartResolucio = drawLineChartToCanvas(computeMonthlyAvgResolution(M_STATE.faults), {width:700, height:260});
 
   const row1H = Math.max(
-    placeChart("Avaries per pis", chartPis, mg, y),
-    placeChart("Estances amb més avaries", chartEstances, mg+chartColW+chartGap, y)
+    placeChart("Top 10 pisos amb més avaries", chartPis, mg, y),
+    placeChart("Top 10 estances amb més avaries", chartEstances, mg+chartColW+chartGap, y)
   );
-  y += row1H + 10;
-  if(y > H - 90){ doc.addPage(); y = 16; }
-  const row2H = Math.max(
-    placeChart("Evolució mensual d'avaries", chartEvolucio, mg, y),
-    placeChart("Temps mitjà de resolució per mes (min)", chartResolucio, mg+chartColW+chartGap, y)
-  );
-  y += row2H + 8;
+  y += row1H + 8;
 
   // Banner de certificacions + adreça de la propietat (si es reconeix), a totes les pàgines
   const propertyAddr = PROPERTY_DIRECTORY[(M_STATE.hotelName||"").trim()];
