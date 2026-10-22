@@ -6210,8 +6210,14 @@ function concParsePayroll(sheets){
           else if(label && val!=null) rec.t[concNorm(label).toUpperCase()]=val;
         }
         if(emps[id]){
+          // El mateix número d'empleat pot aparèixer en més d'un departament (p.ex. algú
+          // que ha canviat de secció durant el mes, o que puntua hores en dos llocs).
+          // En aquest cas cal SUMAR els imports de cada bloc, no descartar-los: altrament
+          // es perdien els conceptes del segon departament en què apareixia.
           if(!emps[id].depts.includes(dept)) emps[id].depts.push(dept);
           if(!emps[id].name && fullName) emps[id].name=fullName;
+          for(const code in rec.c) emps[id].c[code]=(emps[id].c[code]||0)+rec.c[code];
+          for(const lbl in rec.t) emps[id].t[lbl]=(emps[id].t[lbl]||0)+rec.t[lbl];
         } else { rec.depts=[dept]; delete rec.dept; emps[id]=rec; }
       }
     }
@@ -6266,12 +6272,16 @@ function concBuildTable(P,V){
   const pre=[]; // {r,E,pid,name,dept}
 
   for(const r of V.rows){
+    // La clau de conciliació és sempre el número d'empleat (ID), mai el nom: és l'únic
+    // camp fiable per aparellar els dos fitxers. El nom que es mostra a la taula és el
+    // que surt al resum de NÒMINES (no el del fitxer de variables), precisament per
+    // poder comprovar d'un cop d'ull que l'ID apareat correspon al treballador esperat.
     let pid = P.emps[r.id] ? r.id : null;
     if(!pid && byLoose[concLooseKey(r.id)]) pid=byLoose[concLooseKey(r.id)];
     if(pid) matched.add(pid);
     const E = pid ? P.emps[pid] : null;
     if(!E) notFound++;
-    pre.push({r,E,pid,name:r.name||E?.name||'',dept:E?.depts.join(' / ')||'—'});
+    pre.push({r,E,pid,name:E?.name||r.name||'',dept:E?.depts.join(' / ')||'—'});
   }
   if(notFound) fileIssues.push(`${notFound} de ${V.rows.length} empleat(s) del fitxer de variables no s'han trobat al resum de nòmines.`);
 
@@ -6284,6 +6294,14 @@ function concBuildTable(P,V){
   }
   function comQty(r,cat){
     const v = Object.keys(r.q).filter(h=>cat.varRe.test(h)).reduce((a,h)=>a+(r.q[h]||0),0);
+    return v>0?v:null;
+  }
+  // Brut consolidat: suma de tots els conceptes de la nòmina d'un empleat (devengat),
+  // excloent les línies informatives de cotització, per tenir d'un cop d'ull l'import
+  // total que rep cadascú, no només els conceptes revisats.
+  function brutAmount(E){
+    if(!E) return null;
+    const v = Object.keys(E.c).filter(code=>!/cotiz/i.test(P.concepts[code]||'')).reduce((a,code)=>a+(E.c[code]||0),0);
     return v>0?v:null;
   }
   const priceSamples = {}; // cat.key -> [preus implícits]
@@ -6321,7 +6339,7 @@ function concBuildTable(P,V){
         ? {kind:'warn', text:`A la nòmina de ${name||pid||r.id}: ${notes.join('; ')}.`}
         : {kind:'ok', text:'Coincideix: el comunicat i la nòmina són consistents.'};
     }
-    rows.push({id:r.id,pid,name,dept,cats,diffText,found:!!E});
+    rows.push({id:r.id,pid,name,dept,brut:brutAmount(E),cats,diffText,found:!!E});
   }
 
   // Empleats de nòmina amb imports variables i sense fila comunicada
@@ -6334,7 +6352,7 @@ function concBuildTable(P,V){
     });
     if(!cats.some(c=>c.nom)) continue;
     const notes = cats.filter(c=>c.flag==='warn').map(c=>c.note);
-    rows.push({id:'—',pid:id,name:E.name,dept:E.depts.join(' / '),cats,
+    rows.push({id:'—',pid:id,name:E.name,dept:E.depts.join(' / '),brut:brutAmount(E),cats,
       diffText:{kind:'warn',text:`A la nòmina de ${E.name||id}: ${notes.join('; ')}.`},found:true});
   }
   return {fileIssues,rows};
@@ -6401,9 +6419,9 @@ concEl('concBDemo').onclick=()=>concLoadDemo();
 concEl('concBClear').onclick=()=>{ CONC_STATE={P:null,V:null,demo:false,fNom:'',fVar:''}; concRefresh(); concToast('Dades esborrades de la memòria de la pàgina.'); };
 concEl('concBCopy').onclick=()=>{
   if(!CONC_STATE.R){ concToast('Encara no hi ha cap informe.'); return; }
-  const rows=[['Núm.','Treballador','Departament',
+  const rows=[['Núm.','Treballador (nòmina)','Departament','Brut nòmina',
     ...CONC_CATS.flatMap(c=>[`${c.label} (comunicat)`,`${c.label} (nòmina)`]),'Diferències']];
-  CONC_STATE.R.rows.forEach(l=>rows.push([l.pid||l.id,l.name,l.dept,
+  CONC_STATE.R.rows.forEach(l=>rows.push([l.pid||l.id,l.name,l.dept,concFmtE(l.brut),
     ...l.cats.flatMap(c=>[concFmtQ(c.com),concFmtE(c.nom)]), l.diffText.text]));
   const tsv=rows.map(r=>r.map(c=>String(c??'').replace(/\t|\n/g,' ')).join('\t')).join('\n');
   navigator.clipboard.writeText(tsv).then(()=>concToast('Informe copiat. Enganxa\'l a un full d\'Excel.')).catch(()=>concToast('El navegador no permet copiar. Selecciona la taula manualment.'));
@@ -6441,7 +6459,7 @@ function concRenderAll(){
   const subHead = CONC_CATS.map(c=>`<th class="conc-group-com">Comunicat (${c.unit})</th><th>Nòmina (€)</th>`).join('');
   concEl('concRes').innerHTML = R.rows.length ? `
     <thead>
-      <tr><th rowspan="2" class="conc-name-h">Treballador</th><th rowspan="2" class="conc-name-h">Departament</th>${catHead}<th rowspan="2" style="text-align:left;">Diferències</th></tr>
+      <tr><th rowspan="2">Núm.</th><th rowspan="2" class="conc-name-h">Treballador (nòmina)</th><th rowspan="2" class="conc-name-h">Departament</th><th rowspan="2">Brut nòmina</th>${catHead}<th rowspan="2" style="text-align:left;">Diferències</th></tr>
       <tr>${subHead}</tr>
     </thead>
     <tbody>${R.rows.map(l=>{
@@ -6449,7 +6467,7 @@ function concRenderAll(){
         const mismatched = c.flag==='warn';
         return `<td class="conc-num conc-group-com">${concFmtQ(c.com)}</td><td class="conc-num${mismatched?' conc-diff-cell':''}">${concFmtE(c.nom)}</td>`;
       }).join('');
-      return `<tr><td class="conc-name">${concEsc(l.name||l.pid||l.id)}</td><td class="conc-dim">${concEsc(l.dept)}</td>${cells}<td class="conc-diff-text"><span class="${l.diffText.kind}">${concEsc(l.diffText.text)}</span></td></tr>`;
+      return `<tr><td class="conc-mono">${concEsc(l.pid||l.id)}</td><td class="conc-name">${concEsc(l.name||'(sense nom a la nòmina)')}</td><td class="conc-dim">${concEsc(l.dept)}</td><td class="conc-num">${concFmtE(l.brut)}</td>${cells}<td class="conc-diff-text"><span class="${l.diffText.kind}">${concEsc(l.diffText.text)}</span></td></tr>`;
     }).join('')}</tbody>` : `<tr><td class="conc-empty">Cap treballador per mostrar.</td></tr>`;
 }
 
