@@ -6135,55 +6135,85 @@ const concMedian = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>
 /* --- Resum de nòmines: conceptes en files, empleats en columnes --- */
 function concParsePayroll(sheets){
   const emps={}, concepts={}, issues=[]; let nif=null, period=null, company=null;
+  const isIdRow = r=>r && r.slice(3).some(c=>/^\d{3,}(\.\d+)?$/.test(String(c??'').trim()));
   for(const {name,aoa} of sheets){
-    let idRow = aoa.findIndex(r=>r && /^DEL\s/i.test(String(r[0]??'')) && r.slice(3).some(c=>/^\d{3,}/.test(String(c??'').trim())));
-    if(idRow<0) idRow = aoa.findIndex(r=>r && r.slice(3).some(c=>typeof c==='string' && /^\d{3,}(\.\d+)?$/.test(c.trim())));
-    if(idRow<0) continue;
+    // Un mateix full pot contenir diversos blocs de departament seguits (cada un amb
+    // la seva pròpia capçalera "DEL .../AL ...", files de nom i secció CONCEPTO), no
+    // només un. Cal trobar TOTS els inicis de bloc (totes les files amb IDs d'empleat
+    // a les columnes de dades), no només el primer, i acotar cada bloc fins al següent
+    // (o fins al final del full). Si no es fa així, les files de CONCEPTOS i de nom
+    // d'un bloc es poden confondre amb les del següent, i és aquí on alguns empleats
+    // acaben mostrant només el cognom (la fila NOM que els pertoca queda fora del
+    // rang que s'està llegint, perquè pertany a un bloc posterior).
+    const idRows=[];
+    aoa.forEach((r,i)=>{ if(/^DEL\s/i.test(String(r?.[0]??'')) && isIdRow(r)) idRows.push(i); });
+    if(!idRows.length) aoa.forEach((r,i)=>{ if(isIdRow(r)) idRows.push(i); });
+    if(!idRows.length) continue;
     const dept = concNorm(aoa[0]?.[3]||'').replace(/^NIVEL\s*\d+\s*/i,'').replace(/^\d+\s*/,'') || ('Full '+name);
     for(const r of aoa){
       const a=String(r?.[0]??'');
       const m=a.match(/DEL\s+(\d{2})\/(\d{2})\/(\d{2,4})/i); if(m&&!period) period={m:+m[2],y:+(m[3].length===2?'20'+m[3]:m[3])};
       const e=a.match(/Empresa:\s*(.*?)\s+NIF:\s*([A-Z0-9]+)/i); if(e&&!nif){company=e[1];nif=e[2];}
     }
-    const cols=[]; aoa[idRow].forEach((c,i)=>{ const v=String(c??'').trim(); if(i>=3 && /^\d{3,}(\.\d+)?$/.test(v)) cols.push([i,v]); });
-    // El nom sol venir repartit en diverses files etiquetades (NOM / COGNOM 1 / COGNOM 2,
-    // o NOMBRE / APELLIDO 1 / APELLIDO 2), una sota l'altra, abans de la fila "CONCEPTO".
-    // Es detecten per l'etiqueta de la columna A de cada fila (no per posició), per poder
-    // recompondre el nom complet en l'ordre correcte encara que les files no estiguin en
-    // l'ordre Nom-Cognom1-Cognom2 al full. Si no hi ha cap etiqueta reconeguda, es manté
-    // el comportament anterior: la primera fila amb text es fa servir tal qual.
-    const nameParts = {nom:{}, cognom1:{}, cognom2:{}};
-    let hasLabeledName=false, legacyNameRow=null;
-    for(let k=idRow+1;k<Math.min(idRow+12,aoa.length);k++){
-      const r=aoa[k]; if(!r) continue;
-      if(String(r[0]??'').match(/CONCEPTO/i)) break;
-      const label=concNorm(String(r[0]??'')).toUpperCase();
-      let bucket=null;
-      if(/^NOMS?$|^NOMBRES?$/.test(label)) bucket='nom';
-      else if(/^COGNOMS?\s*1$|^APELLID[OA]S?\s*1$|^PRIMER\s*COGNOM$/.test(label)) bucket='cognom1';
-      else if(/^COGNOMS?\s*2$|^APELLID[OA]S?\s*2$|^SEGON\s*COGNOM$/.test(label)) bucket='cognom2';
-      else if(/^COGNOMS?$|^APELLID[OA]S?$/.test(label)) bucket='cognom1';
-      if(bucket){
-        hasLabeledName=true;
-        cols.forEach(([ci])=>{ const v=String(r[ci]??'').trim(); if(v) nameParts[bucket][ci]=v; });
-        continue;
-      }
-      if(legacyNameRow==null && cols.some(([ci])=>typeof r[ci]==='string' && /[a-zA-Z]{2,}/.test(r[ci]))) legacyNameRow=k;
-    }
-    for(const [ci,id] of cols){
-      const fullName = hasLabeledName
-        ? [nameParts.nom[ci], nameParts.cognom1[ci], nameParts.cognom2[ci]].filter(Boolean).join(' ').trim()
-        : (legacyNameRow!=null ? String(aoa[legacyNameRow][ci]??'').trim() : '');
-      const rec={id,dept,name:fullName,c:{},t:{}};
-      for(let k=idRow+1;k<aoa.length;k++){
+    for(let bi=0;bi<idRows.length;bi++){
+      const idRow=idRows[bi];
+      const blockEnd = bi+1<idRows.length ? idRows[bi+1] : aoa.length;
+      const cols=[]; aoa[idRow].forEach((c,i)=>{ const v=String(c??'').trim(); if(i>=3 && /^\d{3,}(\.\d+)?$/.test(v)) cols.push([i,v]); });
+      // El nom sol venir repartit en diverses files etiquetades (NOM / COGNOM 1 / COGNOM 2,
+      // o NOMBRE / APELLIDO 1 / APELLIDO 2), una sota l'altra, abans de la fila "CONCEPTO".
+      // Es detecten per l'etiqueta de la columna A de cada fila (no per posició), per poder
+      // recompondre el nom complet en l'ordre correcte encara que les files no estiguin en
+      // l'ordre Nom-Cognom1-Cognom2 al full. Si no hi ha cap etiqueta reconeguda, es manté
+      // el comportament anterior: la primera fila amb text es fa servir tal qual.
+      // No s'acota a un nombre fix de files: es cerca fins trobar "CONCEPTO" o fins al
+      // final del bloc, ja que alguns blocs tenen més files intermèdies abans d'arribar
+      // a les files de nom.
+      const nameParts = {nom:{}, cognom1:{}, cognom2:{}};
+      let hasLabeledName=false, legacyNameRow=null;
+      for(let k=idRow+1;k<blockEnd;k++){
         const r=aoa[k]; if(!r) continue;
-        const code=r[1], cname=r[2], label=String(r[0]??'').trim(), val=concNum(r[ci]).v;
-        if(code!=null && cname){ concepts[code]=String(cname).trim(); if(val) rec.c[code]=(rec.c[code]||0)+val; }
-        else if(label && val!=null) rec.t[concNorm(label).toUpperCase()]=val;
+        if(String(r[0]??'').match(/CONCEPTO/i)) break;
+        const label=concNorm(String(r[0]??'')).toUpperCase();
+        let bucket=null;
+        if(/^NOMS?$|^NOMBRES?$/.test(label)) bucket='nom';
+        else if(/^COGNOMS?\s*1$|^APELLID[OA]S?\s*1$|^PRIMER\s*COGNOM$/.test(label)) bucket='cognom1';
+        else if(/^COGNOMS?\s*2$|^APELLID[OA]S?\s*2$|^SEGON\s*COGNOM$/.test(label)) bucket='cognom2';
+        else if(/^COGNOMS?$|^APELLID[OA]S?$/.test(label)) bucket='cognom1';
+        if(bucket){
+          hasLabeledName=true;
+          cols.forEach(([ci])=>{ const v=String(r[ci]??'').trim(); if(v) nameParts[bucket][ci]=v; });
+          continue;
+        }
+        if(legacyNameRow==null && cols.some(([ci])=>typeof r[ci]==='string' && /[a-zA-Z]{2,}/.test(r[ci]))) legacyNameRow=k;
       }
-      if(emps[id]){
-        if(!emps[id].depts.includes(dept)) emps[id].depts.push(dept);
-      } else { rec.depts=[dept]; delete rec.dept; emps[id]=rec; }
+      // Si a una columna li falta el NOM però té cognom(s) (p.ex. per un petit
+      // desalineament d'una columna en alguna fila), es busca el valor del NOM a les
+      // columnes veïnes abans de deixar el nom incomplet amb només el(s) cognom(s).
+      if(hasLabeledName){
+        const colSet=new Set(cols.map(([ci])=>ci));
+        for(const [ci] of cols){
+          if(!nameParts.nom[ci] && (nameParts.cognom1[ci] || nameParts.cognom2[ci])){
+            if(nameParts.nom[ci-1] && !colSet.has(ci-1)) nameParts.nom[ci]=nameParts.nom[ci-1];
+            else if(nameParts.nom[ci+1] && !colSet.has(ci+1)) nameParts.nom[ci]=nameParts.nom[ci+1];
+          }
+        }
+      }
+      for(const [ci,id] of cols){
+        const fullName = hasLabeledName
+          ? [nameParts.nom[ci], nameParts.cognom1[ci], nameParts.cognom2[ci]].filter(Boolean).join(' ').trim()
+          : (legacyNameRow!=null ? String(aoa[legacyNameRow][ci]??'').trim() : '');
+        const rec={id,dept,name:fullName,c:{},t:{}};
+        for(let k=idRow+1;k<blockEnd;k++){
+          const r=aoa[k]; if(!r) continue;
+          const code=r[1], cname=r[2], label=String(r[0]??'').trim(), val=concNum(r[ci]).v;
+          if(code!=null && cname){ concepts[code]=String(cname).trim(); if(val) rec.c[code]=(rec.c[code]||0)+val; }
+          else if(label && val!=null) rec.t[concNorm(label).toUpperCase()]=val;
+        }
+        if(emps[id]){
+          if(!emps[id].depts.includes(dept)) emps[id].depts.push(dept);
+          if(!emps[id].name && fullName) emps[id].name=fullName;
+        } else { rec.depts=[dept]; delete rec.dept; emps[id]=rec; }
+      }
     }
   }
   return {emps,concepts,issues,nif,period,company};
