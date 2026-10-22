@@ -6146,11 +6146,35 @@ function concParsePayroll(sheets){
       const e=a.match(/Empresa:\s*(.*?)\s+NIF:\s*([A-Z0-9]+)/i); if(e&&!nif){company=e[1];nif=e[2];}
     }
     const cols=[]; aoa[idRow].forEach((c,i)=>{ const v=String(c??'').trim(); if(i>=3 && /^\d{3,}(\.\d+)?$/.test(v)) cols.push([i,v]); });
-    let nameRow=null;
-    for(let k=idRow+1;k<Math.min(idRow+4,aoa.length);k++){ const r=aoa[k]; if(!r) continue; if(String(r[0]??'').match(/CONCEPTO/i)) break;
-      if(cols.some(([i])=>typeof r[i]==='string' && /[a-zA-Z]{2,}/.test(r[i]))) {nameRow=k;break;} }
+    // El nom sol venir repartit en diverses files etiquetades (NOM / COGNOM 1 / COGNOM 2,
+    // o NOMBRE / APELLIDO 1 / APELLIDO 2), una sota l'altra, abans de la fila "CONCEPTO".
+    // Es detecten per l'etiqueta de la columna A de cada fila (no per posició), per poder
+    // recompondre el nom complet en l'ordre correcte encara que les files no estiguin en
+    // l'ordre Nom-Cognom1-Cognom2 al full. Si no hi ha cap etiqueta reconeguda, es manté
+    // el comportament anterior: la primera fila amb text es fa servir tal qual.
+    const nameParts = {nom:{}, cognom1:{}, cognom2:{}};
+    let hasLabeledName=false, legacyNameRow=null;
+    for(let k=idRow+1;k<Math.min(idRow+12,aoa.length);k++){
+      const r=aoa[k]; if(!r) continue;
+      if(String(r[0]??'').match(/CONCEPTO/i)) break;
+      const label=concNorm(String(r[0]??'')).toUpperCase();
+      let bucket=null;
+      if(/^NOMS?$|^NOMBRES?$/.test(label)) bucket='nom';
+      else if(/^COGNOMS?\s*1$|^APELLID[OA]S?\s*1$|^PRIMER\s*COGNOM$/.test(label)) bucket='cognom1';
+      else if(/^COGNOMS?\s*2$|^APELLID[OA]S?\s*2$|^SEGON\s*COGNOM$/.test(label)) bucket='cognom2';
+      else if(/^COGNOMS?$|^APELLID[OA]S?$/.test(label)) bucket='cognom1';
+      if(bucket){
+        hasLabeledName=true;
+        cols.forEach(([ci])=>{ const v=String(r[ci]??'').trim(); if(v) nameParts[bucket][ci]=v; });
+        continue;
+      }
+      if(legacyNameRow==null && cols.some(([ci])=>typeof r[ci]==='string' && /[a-zA-Z]{2,}/.test(r[ci]))) legacyNameRow=k;
+    }
     for(const [ci,id] of cols){
-      const rec={id,dept,name:nameRow!=null?String(aoa[nameRow][ci]??'').trim():'',c:{},t:{}};
+      const fullName = hasLabeledName
+        ? [nameParts.nom[ci], nameParts.cognom1[ci], nameParts.cognom2[ci]].filter(Boolean).join(' ').trim()
+        : (legacyNameRow!=null ? String(aoa[legacyNameRow][ci]??'').trim() : '');
+      const rec={id,dept,name:fullName,c:{},t:{}};
       for(let k=idRow+1;k<aoa.length;k++){
         const r=aoa[k]; if(!r) continue;
         const code=r[1], cname=r[2], label=String(r[0]??'').trim(), val=concNum(r[ci]).v;
