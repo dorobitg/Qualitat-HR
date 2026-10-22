@@ -819,6 +819,77 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   #simPayroll .sim-discbox{border:2px solid var(--sim-accent); padding:14px 16px; display:grid; gap:8px; font-size:14px;}
   #simPayroll .sim-discbox p{margin:0; max-width:95ch;}
   #simPayroll .sim-discbox strong{color:var(--sim-accent);}
+
+  /* ===== Conciliador de variables (escopat a #concTool per no xocar amb la resta de l'app) ===== */
+  #concTool{
+    --conc-paper:#FFFFFF; --conc-ink:#000000; --conc-olive:#3D4127; --conc-sage:#BAC095;
+    --conc-hair:rgba(61,65,39,.28); --conc-tint:rgba(186,192,149,.22); --conc-tint2:rgba(186,192,149,.5);
+    --conc-muted:rgba(0,0,0,.64); --conc-accent:#3D4127; --conc-onaccent:#FFFFFF; --conc-warnbg:#BAC095; --conc-warnfg:#000000;
+    --conc-f-ui:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+    --conc-f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+    background:var(--conc-paper); color:var(--conc-ink); font-family:var(--conc-f-ui); font-size:15px; line-height:1.45;
+  }
+  #concTool *{box-sizing:border-box;}
+  #concTool .conc-wrap{max-width:1240px; margin:0 auto; display:grid; gap:22px;}
+  #concTool header.conc-top{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:end; gap:12px; border-bottom:3px solid var(--conc-accent); padding-bottom:12px;}
+  #concTool h1{font-size:clamp(24px,4vw,34px); font-weight:700; margin:0; letter-spacing:-.01em;}
+  #concTool .conc-sub{color:var(--conc-muted); margin:2px 0 0; max-width:75ch;}
+  #concTool h2{font-size:13px; letter-spacing:.12em; text-transform:uppercase; margin:0 0 10px; color:var(--conc-accent);}
+  #concTool .conc-lock{display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:start; border:2px solid var(--conc-accent); padding:14px 16px;}
+  #concTool .conc-lock svg{width:34px; height:34px;}
+  #concTool .conc-lock p{margin:0 0 6px; max-width:100ch;}
+  #concTool .conc-lock ul{margin:4px 0 0; padding-left:18px; display:grid; gap:3px; font-size:14px;}
+  #concTool .conc-lock strong{color:var(--conc-accent);}
+  #concTool .conc-drops{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px;}
+  #concTool .conc-drop{border:1.5px dashed var(--conc-accent); padding:16px; display:grid; gap:6px; cursor:pointer; min-width:0; position:relative;}
+  #concTool .conc-drop.over, #concTool .conc-drop:focus-within{background:var(--conc-tint);}
+  #concTool .conc-drop.loaded{border-style:solid;}
+  #concTool .conc-drop .t{font-weight:700; font-size:17px;}
+  #concTool .conc-drop .d{font-size:13px; color:var(--conc-muted);}
+  #concTool .conc-drop .f{font-family:var(--conc-f-num); font-size:12.5px; word-break:break-all;}
+  #concTool .conc-drop input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+  #concTool .conc-bar{display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+  #concTool button{font:inherit; font-size:14px; font-weight:600; padding:8px 14px; border:1.5px solid var(--conc-accent); background:var(--conc-paper); color:var(--conc-accent); cursor:pointer; border-radius:0;}
+  #concTool button.conc-pri{background:var(--conc-accent); color:var(--conc-onaccent);}
+  #concTool button:focus-visible, #concTool input:focus-visible, #concTool select:focus-visible{outline:2px solid var(--conc-accent); outline-offset:2px;}
+  #concTool button[aria-pressed="true"]{background:var(--conc-accent); color:var(--conc-onaccent);}
+  #concTool .conc-demo{font-family:var(--conc-f-num); font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; background:var(--conc-warnbg); color:var(--conc-warnfg); padding:3px 8px;}
+  #concTool .conc-map{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px;}
+  #concTool .conc-mapcard{border:1px solid var(--conc-hair); padding:12px; display:grid; gap:8px; min-width:0;}
+  #concTool .conc-mapcard .vn{font-weight:700;}
+  #concTool .conc-mapcard .codes{display:flex; flex-wrap:wrap; gap:6px;}
+  #concTool .conc-mapcard label.c{display:flex; gap:5px; align-items:center; font-size:13px; border:1px solid var(--conc-hair); padding:3px 7px;}
+  #concTool .conc-mapcard label.c:has(input:checked){background:var(--conc-tint2); border-color:var(--conc-accent);}
+  #concTool .conc-row2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  #concTool .conc-row2 label{display:grid; gap:3px; font-size:12.5px;}
+  #concTool input[type=number], #concTool select{font:inherit; font-size:14px; padding:6px 8px; border:1px solid var(--conc-hair); background:var(--conc-paper); color:var(--conc-ink); width:100%; min-width:0; border-radius:0;}
+  #concTool input[type=number]{font-family:var(--conc-f-num);}
+  #concTool .conc-sum{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); border:1px solid var(--conc-accent);}
+  #concTool .conc-sum div{padding:10px 14px; border-right:1px solid var(--conc-hair);}
+  #concTool .conc-sum div:last-child{border-right:0;}
+  #concTool .conc-sum .k{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--conc-muted);}
+  #concTool .conc-sum .v{font-family:var(--conc-f-num); font-size:24px; font-weight:600; font-variant-numeric:tabular-nums;}
+  #concTool .conc-sum .err{background:var(--conc-accent); color:var(--conc-onaccent);}
+  #concTool .conc-sum .err .k{color:var(--conc-onaccent); opacity:.85;}
+  #concTool .conc-issues{display:grid; gap:6px;}
+  #concTool .conc-issue{display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start; padding:8px 10px; border-bottom:1px solid var(--conc-hair); font-size:14px;}
+  #concTool .conc-pill{font-family:var(--conc-f-num); font-size:10.5px; font-weight:600; letter-spacing:.06em; padding:2px 7px; white-space:nowrap; display:inline-block; border:1.5px solid var(--conc-accent);}
+  #concTool .conc-p-ERROR{background:var(--conc-accent); color:var(--conc-onaccent);}
+  #concTool .conc-p-AVIS{background:var(--conc-warnbg); color:var(--conc-warnfg); border-color:var(--conc-warnbg);}
+  #concTool .conc-p-OK{background:transparent; color:var(--conc-accent);}
+  #concTool .conc-p-INFO{background:transparent; color:var(--conc-muted); border-style:dashed; border-color:var(--conc-muted);}
+  #concTool .conc-scroll{overflow-x:auto;}
+  #concTool table.conc-res{border-collapse:collapse; width:100%; min-width:900px; font-size:13.5px;}
+  #concTool table.conc-res th{font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; text-align:left; padding:6px 8px; border-bottom:2px solid var(--conc-accent); position:sticky; top:0; background:var(--conc-paper);}
+  #concTool table.conc-res td{padding:6px 8px; border-bottom:1px solid var(--conc-hair); vertical-align:top;}
+  #concTool table.conc-res tr.first td{border-top:1.5px solid var(--conc-accent);}
+  #concTool table.conc-res tr.e td:first-child{box-shadow:inset 4px 0 0 var(--conc-accent);}
+  #concTool .conc-num{font-family:var(--conc-f-num); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  #concTool .conc-mono{font-family:var(--conc-f-num);}
+  #concTool .conc-dim{color:var(--conc-muted);}
+  #concTool .conc-empty{border:1px dashed var(--conc-hair); padding:22px; text-align:center; color:var(--conc-muted);}
+  #concTool .conc-notes{font-size:13.5px; max-width:95ch; display:grid; gap:6px; margin:0; padding-left:18px;}
+  #concToast{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(16px + env(safe-area-inset-bottom,0px)); background:#3D4127; color:#FFFFFF; padding:8px 14px; font-size:14px; font-family:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif; z-index:70;}
 </style>
 </head>
 <body>
@@ -840,6 +911,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     <button data-tab="incidencies" class="side-link">Incidències</button>
     <button data-tab="contractes" class="side-link">Contractes i costos</button>
     <button data-tab="comparacio" class="side-link">Comparació Tamigo</button>
+    <button data-tab="conciliador" class="side-link">Conciliador de variables</button>
     <div class="side-group">
       <button class="side-group-toggle" id="practGroupToggle" aria-expanded="false">Pràctiques <span class="chevron">▾</span></button>
       <div class="side-submenu" id="practSubmenu">
@@ -1304,6 +1376,89 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       </table>
     </div>
   </div>
+</section>
+
+<!-- ===================== TAB: CONCILIADOR DE VARIABLES ===================== -->
+<section class="panel" id="panel-conciliador">
+  <div id="concTool">
+  <div class="conc-wrap">
+    <header class="conc-top">
+      <div>
+        <h1>Conciliador de variables de nòmina</h1>
+        <p class="conc-sub">Puja el resum de nòmines per conceptes i el fitxer de variables comunicades al gestor. L'eina comprova, empleat per empleat, si cada variable s'ha reflectit a la nòmina i on hi ha errors de comunicació.</p>
+      </div>
+      <span id="concModeTag" class="conc-demo">Exemple inventat</span>
+    </header>
+
+    <section class="conc-lock" aria-label="Confidencialitat">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor"/></svg>
+      <div>
+        <p><strong>Dades confidencials.</strong> Les nòmines i els noms del personal són dades personals protegides (RGPD art. 5 i 32, LOPDGDD). Aquesta eina les tracta així:</p>
+        <ul>
+          <li>Els fitxers es llegeixen dins del teu navegador. No s'envien a cap servidor, no es desen i no queden a l'historial de la pàgina.</li>
+          <li>Els noms surten emmascarats per defecte. Només es mostren si actives «Mostrar noms», i el text copiat de l'informe respecta aquesta opció.</li>
+          <li>«Esborrar dades» buida la memòria de la pàgina. Tancar la pestanya té el mateix efecte.</li>
+          <li>Fes servir l'eina en un equip de l'empresa i comparteix només l'informe amb identificadors, mai els fitxers originals per canals no autoritzats.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="conc-drops">
+      <label class="conc-drop" id="concDropNom" for="concFNom">
+        <span class="t">1 · Resum de nòmines</span>
+        <span class="d">Excel amb conceptes en files i un empleat per columna (resum per conceptes, format A3).</span>
+        <span class="f" id="concNameNom">Cap fitxer pujat</span>
+        <input id="concFNom" type="file" accept=".xlsx,.xls,.xlsm,.csv">
+      </label>
+      <label class="conc-drop" id="concDropVar" for="concFVar">
+        <span class="t">2 · Variables comunicades</span>
+        <span class="d">Excel amb una fila per empleat: número, nom, període i una columna per variable (hores, dies…).</span>
+        <span class="f" id="concNameVar">Cap fitxer pujat</span>
+        <input id="concFVar" type="file" accept=".xlsx,.xls,.xlsm,.csv">
+      </label>
+    </section>
+
+    <div class="conc-bar">
+      <button id="concBDemo" type="button">Carregar exemple inventat</button>
+      <button id="concBNames" type="button" aria-pressed="false">Mostrar noms</button>
+      <button id="concBCopy" type="button">Copiar informe (per a Excel)</button>
+      <button id="concBClear" type="button">Esborrar dades</button>
+    </div>
+
+    <section>
+      <h2>Correspondència variable → concepte de nòmina</h2>
+      <div class="conc-map" id="concMap"></div>
+    </section>
+
+    <section class="conc-sum" id="concSum"></section>
+
+    <section>
+      <h2>Incidències dels fitxers</h2>
+      <div class="conc-issues" id="concFileIssues"></div>
+    </section>
+
+    <section>
+      <div class="conc-bar" style="justify-content:space-between;margin-bottom:10px">
+        <h2 style="margin:0">Conciliació per empleat</h2>
+        <div class="conc-bar" id="concFilters" role="group" aria-label="Filtre d'estat"></div>
+      </div>
+      <div class="conc-scroll"><table class="conc-res" id="concRes"></table></div>
+    </section>
+
+    <section>
+      <h2>Què comprova l'eina</h2>
+      <ol class="conc-notes">
+        <li><b>Variable no aplicada.</b> Hi ha quantitat comunicada però cap import als conceptes de nòmina associats.</li>
+        <li><b>Import sense comunicació.</b> La nòmina porta import en un concepte variable i no consta cap quantitat comunicada.</li>
+        <li><b>Import que no quadra.</b> Si indiques un preu per unitat, compara quantitat × preu amb l'import. Si no l'indiques, compara el preu implícit de cada empleat amb la mediana del grup i marca les desviacions.</li>
+        <li><b>Empleat no trobat.</b> El número del fitxer de variables no existeix a la nòmina. Si coincideix traient zeros o sufixos, ho indica com a possible error de format.</li>
+        <li><b>Qualitat de la comunicació.</b> Nombres desats com a text o amb coma, identificadors amb format diferent, NIF d'empresa buit o diferent, període que no correspon, files duplicades i noms que no coincideixen entre fitxers.</li>
+        <li><b>Coherència interna.</b> Hores nocturnes superiors a les hores de presència, hores extres sense cotització específica i empleats en IT amb variables comunicades.</li>
+      </ol>
+    </section>
+  </div>
+  </div>
+  <div id="concToast" hidden></div>
 </section>
 
 <!-- ===================== TAB: NOTIFICACIÓ NO SUPERACIÓ PERÍODE DE PROVA ===================== -->
@@ -2507,6 +2662,7 @@ document.querySelectorAll(".side-link[data-tab]").forEach(btn=>{
     if(btn.dataset.tab === "crida") renderCridaTab();
     if(btn.dataset.tab === "incorporacio") renderIncorporacioTab();
     if(btn.dataset.tab === "nspp") renderNsppTab();
+    if(btn.dataset.tab === "conciliador") initConciliadorTab();
     if(btn.dataset.tab === "simulador") initSimuladorTab();
     if(btn.dataset.tab === "configuracio") renderConfigTab();
     // Si el botó és dins d'un submenú, el mantenim obert i marcat
@@ -5960,6 +6116,333 @@ function simRenderAll(){
 }
 
 window.initSimuladorTab = initSimuladorTab;
+})();
+</script>
+
+<!-- ===================== CONCILIADOR DE VARIABLES (escopat, no interfereix amb la resta de l'app) ===================== -->
+<script>
+(function(){
+"use strict";
+let concInited = false;
+
+function initConciliadorTab(){
+  if(concInited) return;
+  concInited = true;
+
+/* ================= NUCLI (funcions pures) ================= */
+const CONC_RULES = [
+  {re:/noct/i, conc:/noctur/i, unit:'h'},
+  {re:/festiv|fiesta|festa/i, conc:/fest|fiesta/i, unit:'dies'},
+  {re:/extra|complement/i, conc:/hora.*extra|extra.*hora|complementari/i, unit:'h'},
+  {re:/plus|prima|incentiv|comisi/i, conc:null, unit:'€'}
+];
+const concNorm = s => String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+function concNum(v){
+  if(v==null||v==='') return {v:null};
+  if(typeof v==='number') return {v};
+  let s=String(v).trim().replace(/\s|€/g,'');
+  const text=true, comma=s.includes(',');
+  if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s=s.replace(/\./g,'').replace(',','.');
+  else s=s.replace(',','.');
+  const n=parseFloat(s);
+  return isNaN(n)?{v:null,bad:String(v)}:{v:n,text,comma};
+}
+const concIdKey = s => String(s??'').trim();
+const concLooseKey = s => concIdKey(s).replace(/\.\d+$/,'').replace(/^0+/,'');
+function concMask(name){
+  if(!name) return '';
+  return concNorm(name).split(/\s+/).filter(Boolean).map(w=>w[0].toUpperCase()+'•••').join(' ');
+}
+
+/* --- Resum de nòmines: conceptes en files, empleats en columnes --- */
+function concParsePayroll(sheets){
+  const emps={}, concepts={}, issues=[]; let nif=null, period=null, company=null;
+  for(const {name,aoa} of sheets){
+    let idRow = aoa.findIndex(r=>r && /^DEL\s/i.test(String(r[0]??'')) && r.slice(3).some(c=>/^\d{3,}/.test(String(c??'').trim())));
+    if(idRow<0) idRow = aoa.findIndex(r=>r && r.slice(3).some(c=>typeof c==='string' && /^\d{3,}(\.\d+)?$/.test(c.trim())));
+    if(idRow<0) continue;
+    const dept = concNorm(aoa[0]?.[3]||'').replace(/^NIVEL\s*\d+\s*/i,'').replace(/^\d+\s*/,'') || ('Full '+name);
+    for(const r of aoa){
+      const a=String(r?.[0]??'');
+      const m=a.match(/DEL\s+(\d{2})\/(\d{2})\/(\d{2,4})/i); if(m&&!period) period={m:+m[2],y:+(m[3].length===2?'20'+m[3]:m[3])};
+      const e=a.match(/Empresa:\s*(.*?)\s+NIF:\s*([A-Z0-9]+)/i); if(e&&!nif){company=e[1];nif=e[2];}
+    }
+    const cols=[]; aoa[idRow].forEach((c,i)=>{ const v=String(c??'').trim(); if(i>=3 && /^\d{3,}(\.\d+)?$/.test(v)) cols.push([i,v]); });
+    // fila de noms opcional, just després dels números
+    let nameRow=null;
+    for(let k=idRow+1;k<Math.min(idRow+4,aoa.length);k++){ const r=aoa[k]; if(!r) continue; if(String(r[0]??'').match(/CONCEPTO/i)) break;
+      if(cols.some(([i])=>typeof r[i]==='string' && /[a-zA-Z]{2,}/.test(r[i]))) {nameRow=k;break;} }
+    for(const [ci,id] of cols){
+      const rec={id,dept,name:nameRow!=null?String(aoa[nameRow][ci]??'').trim():'',c:{},t:{}};
+      for(let k=idRow+1;k<aoa.length;k++){
+        const r=aoa[k]; if(!r) continue;
+        const code=r[1], cname=r[2], label=String(r[0]??'').trim(), val=concNum(r[ci]).v;
+        if(code!=null && cname){ concepts[code]=String(cname).trim(); if(val) rec.c[code]=(rec.c[code]||0)+val; }
+        else if(label && val!=null) rec.t[concNorm(label).toUpperCase()]=val;
+      }
+      if(emps[id]){
+        const same = JSON.stringify(emps[id].c)===JSON.stringify(rec.c);
+        if(!emps[id].depts.includes(dept)) emps[id].depts.push(dept);
+        if(!same) issues.push({s:'AVIS',m:`L'empleat ${id} apareix a «${emps[id].depts[0]}» i a «${dept}» amb imports diferents. Es fan servir els del primer full.`});
+      } else { rec.depts=[dept]; delete rec.dept; emps[id]=rec; }
+    }
+  }
+  return {emps,concepts,issues,nif,period,company};
+}
+
+/* --- Variables comunicades: una fila per empleat --- */
+function concParseVars(aoa){
+  const issues=[]; const hi=aoa.findIndex(r=>r && r.some(c=>/pers|emplea|trabaj|treball|n[ºo°]\.?\s*emp|codi|c[oó]digo|matr/i.test(String(c??''))));
+  if(hi<0) return {rows:[],vars:[],issues:[{s:'ERROR',m:'No trobo la capçalera del fitxer de variables (cal una columna amb el número d\'empleat).'}]};
+  const H=aoa[hi].map(h=>String(h??'').trim());
+  const idC=H.findIndex(h=>/pers|emplea|trabaj|treball|codi|c[oó]digo|matr/i.test(h));
+  const nameC=H.findIndex(h=>/naam|nombre|^nom|name|apellid|cognom/i.test(h));
+  const perC=H.findIndex(h=>/period|^mes|month/i.test(h));
+  const coC=H.map((h,i)=>/debiteur|bedrijf|empresa|nif|cif|company/i.test(h)?i:-1).filter(i=>i>=0);
+  const vars=H.map((h,i)=>({h,i})).filter(o=>o.h && ![idC,nameC,perC,...coC].includes(o.i));
+  const rows=[];
+  for(let k=hi+1;k<aoa.length;k++){
+    const r=aoa[k]; if(!r||r.every(c=>c==null||c==='')) continue;
+    const id=concIdKey(r[idC]); if(!id) continue;
+    const row={id,line:k+1,name:nameC>=0?String(r[nameC]??'').trim():'',period:perC>=0?String(r[perC]??'').trim():'',nifs:coC.map(i=>String(r[i]??'').trim()),q:{},flags:[]};
+    for(const v of vars){
+      const p=concNum(r[v.i]);
+      if(p.bad) row.flags.push({s:'ERROR',m:`«${v.h}»: valor «${p.bad}» no numèric.`});
+      else if(p.text) row.flags.push({s:'AVIS',m:`«${v.h}»: ${concFmtQ(p.v)} desat com a text${p.comma?' amb coma decimal':''}.`});
+      row.q[v.h]=p.v;
+    }
+    rows.push(row);
+  }
+  return {rows,vars:vars.map(v=>v.h),issues,hasName:nameC>=0};
+}
+
+function concDefaultMap(vars,concepts){
+  const codes=Object.keys(concepts).filter(c=>+c<700);
+  return Object.fromEntries(vars.map(v=>{
+    const rule=CONC_RULES.find(r=>r.re.test(v));
+    const sel = rule&&rule.conc ? codes.filter(c=>rule.conc.test(concepts[c]) && !/cotiz/i.test(concepts[c])) : [];
+    return [v,{codes:sel,price:null,unit:rule?.unit||'u',tol:0.5}];
+  }));
+}
+
+const concMedian = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+const concFmtE = x => x==null?'':x.toLocaleString('ca-ES',{minimumFractionDigits:2,maximumFractionDigits:2});
+const concFmtQ = x => x==null?'':x.toLocaleString('ca-ES',{maximumFractionDigits:2});
+
+function concReconcile(P,V,map){
+  const file=[...P.issues,...V.issues]; const lines=[];
+  const ids=Object.keys(P.emps);
+  if(!ids.length) file.push({s:'ERROR',m:'El resum de nòmines no conté cap columna d\'empleat reconeixible.'});
+  // empresa
+  const vn=[...new Set(V.rows.flatMap(r=>r.nifs).filter(Boolean))];
+  const blanks=V.rows.filter(r=>r.nifs.length && r.nifs.every(x=>!x));
+  if(blanks.length) file.push({s:'AVIS',m:`${blanks.length} fila(es) de variables sense NIF d'empresa (empleat${blanks.length>1?'s':''} ${blanks.map(r=>r.id).join(', ')}).`});
+  if(P.nif && vn.length && !vn.includes(P.nif)) file.push({s:'ERROR',m:`Les variables són de l'empresa ${vn.join(' / ')} i la nòmina és de ${P.nif}${P.company?' ('+P.company+')':''}. Pot ser que s'hagi enviat el fitxer d'una altra empresa.`});
+  else if(vn.length>1) file.push({s:'AVIS',m:`El fitxer de variables barreja ${vn.length} NIF d'empresa: ${vn.join(', ')}.`});
+  // període
+  const pers=[...new Set(V.rows.map(r=>r.period).filter(Boolean))];
+  if(P.period && pers.length){
+    for(const p of pers){ const m=p.match(/(\d{4})\D?(\d{1,2})/); if(!m) continue;
+      const diff=(P.period.y*12+P.period.m)-(+m[1]*12+ +m[2]);
+      if(diff===1) file.push({s:'INFO',m:`Variables del període ${p} liquidades a la nòmina de ${String(P.period.m).padStart(2,'0')}/${P.period.y} (mes vençut).`});
+      else if(diff!==0) file.push({s:'ERROR',m:`El període de les variables (${p}) no correspon a la nòmina (${String(P.period.m).padStart(2,'0')}/${P.period.y}).`});
+    }
+  }
+  // duplicats i format d'identificador
+  const seen={}; V.rows.forEach(r=>{ (seen[r.id]=seen[r.id]||[]).push(r.line); });
+  Object.entries(seen).filter(([,l])=>l.length>1).forEach(([id,l])=>file.push({s:'ERROR',m:`L'empleat ${id} està repetit al fitxer de variables (files ${l.join(', ')}).`}));
+  const lens={}; ids.forEach(i=>lens[i.length]=(lens[i.length]||0)+1);
+  const stdLen=+Object.entries(lens).sort((a,b)=>b[1]-a[1])[0]?.[0]||6;
+  const byLoose={}; ids.forEach(i=>byLoose[concLooseKey(i)]=i);
+  let notFound=0;
+  const matched=new Set();
+  const varStats={}; // preus implícits
+  const pre=[];
+  for(const r of V.rows){
+    let pid = P.emps[r.id] ? r.id : null, how='';
+    if(!/^\d+$/.test(r.id) || r.id.length!==stdLen) r.flags.push({s:'AVIS',m:`Identificador «${r.id}» amb format diferent del de nòmina (${stdLen} xifres).`});
+    if(!pid && byLoose[concLooseKey(r.id)]){ pid=byLoose[concLooseKey(r.id)]; how=pid; r.flags.push({s:'AVIS',m:`Aparellat amb ${pid} de nòmina en ignorar zeros o sufixos. Cal corregir el número a l'origen.`}); }
+    if(pid) matched.add(pid);
+    const E = pid ? P.emps[pid] : null;
+    if(!E) notFound++;
+    if(E && r.name && E.name && concNorm(r.name).toLowerCase()!==concNorm(E.name).toLowerCase()) r.flags.push({s:'AVIS',m:'El nom no coincideix entre el fitxer de variables i la nòmina.'});
+    pre.push({r,E,pid});
+    if(E) for(const v of V.vars){ const q=r.q[v], amt=concSumC(E,map[v].codes); if(q>0&&amt>0) (varStats[v]=varStats[v]||[]).push(amt/q); }
+  }
+  if(notFound) file.push({s:'ERROR',m:`${notFound} de ${V.rows.length} empleats del fitxer de variables no existeixen al resum de nòmines.${notFound===V.rows.length?' Cap número coincideix: revisa que els dos fitxers siguin de la mateixa empresa i del mateix centre.':''}`});
+  const med=Object.fromEntries(Object.entries(varStats).map(([k,a])=>[k,concMedian(a)]));
+
+  for(const {r,E,pid} of pre){
+    const head={id:r.id,pid,name:r.name||E?.name||'',dept:E?.depts.join(' / ')||'—'};
+    let first=true; const push=o=>{lines.push({...head,...o,first});first=false;};
+    r.flags.forEach(f=>push({v:'Fitxer de variables',q:null,amt:null,ip:null,s:f.s,m:f.m}));
+    if(!E){ push({v:'—',q:null,amt:null,ip:null,s:'ERROR',m:'Empleat no trobat al resum de nòmines. Les variables comunicades no s\'han pagat o el número és erroni.'}); continue; }
+    const itAmt=concSumC(E,Object.keys(P.concepts).filter(c=>/enfermedad|malaltia|\bI\.?T\b|incapac/i.test(P.concepts[c])));
+    for(const v of V.vars){
+      const q=r.q[v], mp=map[v], amt=concSumC(E,mp.codes);
+      if(!(q>0) && !(amt>0)) continue;
+      const o={v,q,amt,ip:q>0&&amt>0?amt/q:null,unit:mp.unit};
+      if(!mp.codes.length){ push({...o,s:'INFO',m:'Variable sense concepte de nòmina associat. Marca\'n un a la correspondència.'}); continue; }
+      if(q>0 && !(amt>0)) push({...o,s:'ERROR',m:`Comunicat ${concFmtQ(q)} ${mp.unit} però la nòmina no porta import a ${mp.codes.map(c=>P.concepts[c]).join(' / ')}.`});
+      else if(!(q>0) && amt>0) push({...o,s:'AVIS',m:`La nòmina porta ${concFmtE(amt)} € a ${mp.codes.filter(c=>E.c[c]).map(c=>P.concepts[c]).join(' / ')} sense variable comunicada. Pot ser un import fix o un error.`});
+      else if(mp.price>0){
+        const exp=q*mp.price, d=amt-exp;
+        if(Math.abs(d)>mp.tol) push({...o,s:'ERROR',m:`Esperat ${concFmtQ(q)} × ${concFmtE(mp.price)} = ${concFmtE(exp)} €; a nòmina ${concFmtE(amt)} € (diferència ${d>0?'+':''}${concFmtE(d)} €).`});
+        else push({...o,s:'OK',m:'Import correcte segons el preu indicat.'});
+      } else if(med[v] && Math.abs(o.ip/med[v]-1)>0.25){
+        push({...o,s:'AVIS',m:`Preu implícit ${concFmtE(o.ip)} €/${mp.unit}, lluny de la mediana del grup (${concFmtE(med[v])} €). Revisa la quantitat comunicada o l'import.`});
+      } else push({...o,s:'OK',m:'Comunicat i reflectit a la nòmina.'});
+      // coherències
+      if(/noct/i.test(v) && q>0 && E.t['HORAS PRESENCIA']>0 && q>E.t['HORAS PRESENCIA']) push({v,q,amt:null,ip:null,s:'ERROR',m:`${concFmtQ(q)} h nocturnes superen les ${concFmtQ(E.t['HORAS PRESENCIA'])} h de presència de la nòmina.`});
+      if(/extra/i.test(v) && amt>0 && !Object.keys(E.c).some(c=>/cotiz.*extra/i.test(P.concepts[c]))) push({v,q,amt:null,ip:null,s:'AVIS',m:'Hores extres pagades sense línia de «cotización horas extras».'});
+      if(q>0 && itAmt>0) push({v,q,amt:null,ip:null,s:'INFO',m:'L\'empleat ha estat en IT durant el període. Comprova que les variables corresponguin a dies treballats.'});
+    }
+    if(Object.keys(E.c).some(c=>/rectific/i.test(P.concepts[c]))) push({v:'Nòmina',q:null,amt:null,ip:null,s:'INFO',m:'La nòmina inclou una rectificació de variables de mesos anteriors.'});
+    if(first) push({v:'—',q:null,amt:null,ip:null,s:'OK',m:'Sense variables al període.'});
+  }
+  // empleats de nòmina amb conceptes variables i sense fila comunicada
+  const varCodes=[...new Set(Object.values(map).flatMap(m=>m.codes))];
+  for(const id of ids){
+    if(matched.has(id)) continue;
+    const E=P.emps[id]; const amts=varCodes.filter(c=>E.c[c]);
+    if(!amts.length) continue;
+    lines.push({id:'—',pid:id,name:E.name,dept:E.depts.join(' / '),v:amts.map(c=>P.concepts[c]).join(', '),q:null,amt:concSumC(E,amts),ip:null,s:'AVIS',first:true,
+      m:'Empleat amb imports variables a la nòmina però sense cap fila al fitxer de variables.'});
+  }
+  return {file,lines,med};
+}
+function concSumC(E,codes){ return codes.reduce((a,c)=>a+(E.c[c]||0),0); }
+
+/* ================= EXEMPLE INVENTAT ================= */
+function concDemo(){
+  const ids=['000101','000102','000103','000104','000105','000106','000107'];
+  const nm=['Laia Font Serra','Marc Puig Roca','Núria Vila Pons','Jordi Mas Soler','Clara Ribas Gil','Pau Costa Bosch','Aina Torres Riu'];
+  const base=[1735.87,1735.87,1607.25,1446.56,1735.87,1004.53,1735.87];
+  const noct=[60,0,45,38,0,0,52], fest=[2,1,1,0,2,0,1], hex=[0,8,0,0,0,0,4];
+  const pNoc=1.6, pFes=27, pHex=12.5;
+  const P=[['Moneda: Euro',null,null,'NIVEL 1           04 SALA',...ids.map(()=>null)],[],
+    ['DEL 01/10/26 AL 31/10/26',null,null,...ids],
+    ['Empresa:  0001-HOTEL EXEMPLE, S.L. NIF: B00000000'],
+    [null,null,null,...nm],['CONCEPTO'],
+    [null,1,'Salario Base',...base],
+    [null,53,'Plus Nocturnidad',...noct.map((n,i)=>i===0?r(n*pNoc):i===2?null:i===3?r(48*pNoc):n?r(n*pNoc):null)],
+    [null,369,'Fiestas no Recuperables',...fest.map((f,i)=>i===5?27:f?f*pFes:null)],
+    [null,362,'Horas Extras',...hex.map((h,i)=>i===6?null:h?r(h*pHex):null)],
+    [null,998,'COTIZACION HORAS EXTRAS',...hex.map((h,i)=>i===1?null:null)],
+    ['HORAS PRESENCIA',null,null,168,168,40,150,168,90,168]];
+  const V=[['Debiteurnr','Bedrijfnr','Persnr','Naam','Periode','NOCTURNIDAD','PLUS FESTIVO 40%','H. EXTRA/COMPLEMENTARIA'],
+    ['B00000000','B00000000','000101',nm[0],'2026-09',60,2,null],
+    ['B00000000','B00000000','000102','Marc Puig Roca','2026-09',null,1,8],
+    ['B00000000','B00000000','000103',nm[2],'2026-09','45',1,null],
+    ['B00000000','B00000000','000104',nm[3],'2026-09',38,null,null],
+    [null,null,'00105',nm[4],'2026-09',null,2,null],
+    ['B00000000','B00000000','000107','Aina Torres Rius','2026-09',52,1,'4,0'],
+    ['B00000000','B00000000','000109','Oriol Sala Prat','2026-09',20,1,null]];
+  return {P:[{name:'Exemple',aoa:P}],V};
+  function r(x){return Math.round(x*100)/100}
+}
+
+/* ================= INTERFÍCIE ================= */
+const concEl = id => document.getElementById(id);
+let CONC_STATE = {P:null,V:null,map:{},filter:'tots',names:false,demo:true,fNom:'',fVar:''};
+
+function concReadFile(file){
+  return new Promise((ok,ko)=>{ const fr=new FileReader();
+    fr.onload=()=>{ try{ const wb=XLSX.read(new Uint8Array(fr.result),{type:'array'});
+      ok(wb.SheetNames.map(n=>({name:n,aoa:XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null})}))); }catch(e){ko(e)} };
+    fr.onerror=()=>ko(fr.error); fr.readAsArrayBuffer(file); });
+}
+async function concOnFile(kind,file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){ concToast('No s\'ha pogut carregar el lector d\'Excel. Recarrega la pàgina.'); return; }
+  try{
+    const sheets=await concReadFile(file);
+    if(CONC_STATE.demo){ CONC_STATE.P=null; CONC_STATE.V=null; CONC_STATE.demo=false; CONC_STATE.fNom=''; CONC_STATE.fVar=''; }
+    if(kind==='nom'){ CONC_STATE.P=concParsePayroll(sheets); CONC_STATE.fNom=file.name; }
+    else { CONC_STATE.V=concParseVars(sheets[0].aoa); CONC_STATE.fVar=file.name; }
+    CONC_STATE.map={}; concRefresh();
+  }catch(e){ concToast('No s\'ha pogut llegir «'+file.name+'». Comprova que sigui un Excel vàlid.'); }
+}
+['Nom','Var'].forEach(k=>{
+  const inp=concEl('conc'+'F'+k), dz=concEl('conc'+'Drop'+k);
+  inp.addEventListener('change',()=>{ concOnFile(k.toLowerCase(),inp.files[0]); inp.value=''; });
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');concOnFile(k.toLowerCase(),e.dataTransfer.files[0]);});
+});
+concEl('concBDemo').onclick=()=>concLoadDemo();
+concEl('concBNames').onclick=()=>{CONC_STATE.names=!CONC_STATE.names; concEl('concBNames').setAttribute('aria-pressed',CONC_STATE.names); concEl('concBNames').textContent=CONC_STATE.names?'Amagar noms':'Mostrar noms'; concRenderAll();};
+concEl('concBClear').onclick=()=>{ CONC_STATE={...CONC_STATE,P:null,V:null,map:{},demo:false,fNom:'',fVar:''}; CONC_STATE.names=false; concEl('concBNames').setAttribute('aria-pressed','false'); concEl('concBNames').textContent='Mostrar noms'; concRefresh(); concToast('Dades esborrades de la memòria de la pàgina.'); };
+concEl('concBCopy').onclick=()=>{
+  if(!CONC_STATE.R){ concToast('Encara no hi ha cap informe.'); return; }
+  const rows=[['Estat','Núm. variables','Núm. nòmina',CONC_STATE.names?'Nom':'Nom (emmascarat)','Departament','Variable','Comunicat','Import nòmina','Preu implícit','Detall']];
+  CONC_STATE.R.file.forEach(f=>rows.push([f.s,'','','','','Fitxer','','','',f.m]));
+  CONC_STATE.R.lines.forEach(l=>rows.push([l.s,l.id,l.pid||'',CONC_STATE.names?l.name:concMask(l.name),l.dept,l.v,concFmtQ(l.q),concFmtE(l.amt),concFmtE(l.ip),l.m]));
+  const tsv=rows.map(r=>r.map(c=>String(c??'').replace(/\t|\n/g,' ')).join('\t')).join('\n');
+  navigator.clipboard.writeText(tsv).then(()=>concToast('Informe copiat. Enganxa\'l a un full d\'Excel.')).catch(()=>concToast('El navegador no permet copiar. Selecciona la taula manualment.'));
+};
+function concToast(t){ const el=concEl('concToast'); el.textContent=t; el.hidden=false; clearTimeout(concToast.h); concToast.h=setTimeout(()=>el.hidden=true,3200); }
+function concLoadDemo(){ const d=concDemo(); CONC_STATE.P=concParsePayroll(d.P); CONC_STATE.V=concParseVars(d.V); CONC_STATE.demo=true; CONC_STATE.fNom='exemple_resum_nomines.xlsx'; CONC_STATE.fVar='exemple_variables.xlsx'; CONC_STATE.map={}; concRefresh(); }
+
+function concRefresh(){
+  concEl('concModeTag').hidden=!CONC_STATE.demo;
+  concEl('concNameNom').textContent=CONC_STATE.fNom?(CONC_STATE.fNom+(CONC_STATE.P?` · ${Object.keys(CONC_STATE.P.emps).length} empleats`:'')):'Cap fitxer pujat';
+  concEl('concNameVar').textContent=CONC_STATE.fVar?(CONC_STATE.fVar+(CONC_STATE.V?` · ${CONC_STATE.V.rows.length} files`:'')):'Cap fitxer pujat';
+  concEl('concDropNom').classList.toggle('loaded',!!CONC_STATE.P); concEl('concDropVar').classList.toggle('loaded',!!CONC_STATE.V);
+  if(CONC_STATE.P&&CONC_STATE.V&&!Object.keys(CONC_STATE.map).length){ CONC_STATE.map=concDefaultMap(CONC_STATE.V.vars,CONC_STATE.P.concepts); }
+  concRenderMap(); concRenderAll();
+}
+function concRenderMap(){
+  const el=concEl('concMap');
+  if(!(CONC_STATE.P&&CONC_STATE.V)){ el.innerHTML='<div class="conc-empty">Puja els dos fitxers per veure quines variables es comparen amb quins conceptes.</div>'; return; }
+  const codes=Object.keys(CONC_STATE.P.concepts).filter(c=>+c<700);
+  el.innerHTML=CONC_STATE.V.vars.map((v,vi)=>{ const m=CONC_STATE.map[v];
+    return `<div class="conc-mapcard"><div class="vn">${concEsc(v)}</div>
+      <div class="codes">${codes.map(c=>`<label class="c"><input type="checkbox" data-v="${vi}" data-c="${c}" ${m.codes.includes(c)?'checked':''}><span class="conc-mono">${c}</span> ${concEsc(CONC_STATE.P.concepts[c])}</label>`).join('')}</div>
+      <div class="conc-row2"><label>Preu per unitat (€, opcional)<input type="number" step="0.01" min="0" id="concPr${vi}" data-v="${vi}" data-k="price" value="${m.price??''}"></label>
+      <label>Unitat<select id="concUn${vi}" data-v="${vi}" data-k="unit">${['h','dies','u','€'].map(u=>`<option ${u===m.unit?'selected':''}>${u}</option>`).join('')}</select></label></div></div>`;}).join('');
+  el.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>{ const m=CONC_STATE.map[CONC_STATE.V.vars[cb.dataset.v]]; const c=cb.dataset.c;
+    m.codes=cb.checked?[...new Set([...m.codes,c])]:m.codes.filter(x=>x!==c); concRenderAll(); });
+  el.querySelectorAll('[data-k]').forEach(i=>i.oninput=()=>{ const m=CONC_STATE.map[CONC_STATE.V.vars[i.dataset.v]]; m[i.dataset.k]=i.dataset.k==='price'?(parseFloat(i.value)||null):i.value; concRenderAll(); });
+}
+function concEsc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+const CONC_LBL={ERROR:'ERROR',AVIS:'AVÍS',OK:'OK',INFO:'INFO'};
+const concPill=s=>`<span class="conc-pill conc-p-${s}">${CONC_LBL[s]}</span>`;
+
+function concRenderAll(){
+  if(!(CONC_STATE.P&&CONC_STATE.V)){ CONC_STATE.R=null;
+    concEl('concSum').innerHTML=''; concEl('concFileIssues').innerHTML=''; concEl('concFilters').innerHTML='';
+    concEl('concRes').innerHTML=`<tr><td class="conc-empty">${CONC_STATE.P||CONC_STATE.V?'Falta el segon fitxer.':'Puja els dos fitxers o carrega l\'exemple inventat.'}</td></tr>`; return; }
+  const R=concReconcile(CONC_STATE.P,CONC_STATE.V,CONC_STATE.map); CONC_STATE.R=R;
+  const all=[...R.file,...R.lines]; const cnt=s=>all.filter(x=>x.s===s).length;
+  const emps=new Set(R.lines.filter(l=>l.s==='ERROR').map(l=>l.id+'|'+l.pid));
+  concEl('concSum').innerHTML=`<div class="err"><div class="k">Errors</div><div class="v">${cnt('ERROR')}</div></div>
+    <div><div class="k">Avisos</div><div class="v">${cnt('AVIS')}</div></div>
+    <div><div class="k">Correctes</div><div class="v">${cnt('OK')}</div></div>
+    <div><div class="k">Empleats amb error</div><div class="v">${emps.size}</div></div>
+    <div><div class="k">Nòmina ${CONC_STATE.P.period?String(CONC_STATE.P.period.m).padStart(2,'0')+'/'+CONC_STATE.P.period.y:''}</div><div class="v">${Object.keys(CONC_STATE.P.emps).length}</div></div>`;
+  concEl('concFileIssues').innerHTML=R.file.length?R.file.map(f=>`<div class="conc-issue">${concPill(f.s)}<div>${concEsc(f.m)}</div></div>`).join(''):'<div class="conc-issue">'+concPill('OK')+'<div>Sense incidències a nivell de fitxer.</div></div>';
+  concEl('concFilters').innerHTML=['tots','ERROR','AVIS','OK','INFO'].map(f=>`<button type="button" aria-pressed="${CONC_STATE.filter===f}" data-f="${f}">${f==='tots'?'Tots':CONC_LBL[f]}</button>`).join('');
+  concEl('concFilters').querySelectorAll('button').forEach(b=>b.onclick=()=>{CONC_STATE.filter=b.dataset.f; concRenderAll();});
+  const L=R.lines.filter(l=>CONC_STATE.filter==='tots'||l.s===CONC_STATE.filter);
+  let prev=null;
+  concEl('concRes').innerHTML=`<thead><tr><th>Estat</th><th>Núm. variables</th><th>Núm. nòmina</th><th>Nom</th><th>Departament</th><th>Variable</th><th class="conc-num">Comunicat</th><th class="conc-num">Import nòmina</th><th class="conc-num">Preu implícit</th><th>Detall</th></tr></thead><tbody>`+
+    (L.length?L.map(l=>{ const key=l.id+'|'+l.pid, f=key!==prev; prev=key;
+      return `<tr class="${f?'first':''} ${l.s==='ERROR'?'e':''}"><td>${concPill(l.s)}</td>
+      <td class="conc-mono">${f?concEsc(l.id):''}</td><td class="conc-mono">${f?concEsc(l.pid||'—'):''}</td>
+      <td>${f?(CONC_STATE.names?concEsc(l.name):`<span class="conc-dim">${concEsc(concMask(l.name))||'—'}</span>`):''}</td><td>${f?concEsc(l.dept):''}</td>
+      <td>${concEsc(l.v)}</td><td class="conc-num">${l.q!=null?concFmtQ(l.q)+' '+(l.unit||''):''}</td><td class="conc-num">${l.amt!=null?concFmtE(l.amt)+' €':''}</td>
+      <td class="conc-num">${l.ip!=null?concFmtE(l.ip):''}</td><td>${concEsc(l.m)}</td></tr>`;}).join('')
+    :`<tr><td colspan="10" class="conc-empty">Cap línia amb aquest estat.</td></tr>`)+'</tbody>';
+}
+
+if(typeof XLSX === "undefined"){
+  concToast('AVÍS: el lector d\'Excel no s\'ha trobat. Recarrega la pàgina.');
+}
+concLoadDemo();
+}
+
+window.initConciliadorTab = initConciliadorTab;
 })();
 </script>
 </body>
